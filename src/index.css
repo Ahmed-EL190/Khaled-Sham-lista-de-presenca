@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Tajawal", sans-serif;
+  --font-mono-ar: "IBM Plex Sans Arabic", sans-serif;
+
+  --color-ink: #0b1b33;
+  --color-ink-soft: #16294a;
+  --color-steel: #1e6fbf;
+  --color-steel-light: #4fa3e8;
+  --color-mist: #eaf3fc;
+  --color-page: #f5f7fb;
+  --color-line: #d7e2f0;
+  --color-in: #17915c;
+  --color-in-soft: #e3f7ec;
+  --color-out: #64748b;
+  --color-out-soft: #eef1f5;
+  --color-pending: #c98a1c;
+  --color-pending-soft: #fbf0dd;
+}
+
+html {
+  font-family: var(--font-display);
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  margin: 0;
+  min-height: 100vh;
+  background-image:
+    linear-gradient(var(--color-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
+  background-size: 42px 42px;
+  background-position: -1px -1px;
+  background-attachment: fixed;
+}
+
+.tabular {
+  font-family: var(--font-mono-ar);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot {
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
+  * { transition: none !important; }
+}
