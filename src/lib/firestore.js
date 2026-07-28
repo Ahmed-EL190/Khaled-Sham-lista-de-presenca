@@ -94,6 +94,18 @@ export function clearCheckOut({ dateKey, workerId }) {
   );
 }
 
+export function addLateRecord({ dateKey, workerId, workerName, siteId, siteName, checkIn, checkOut }) {
+  return setDoc(doc(db, "records", recordId(dateKey, workerId)), {
+    dateKey,
+    workerId,
+    workerName,
+    siteId: siteId || null,
+    siteName: siteName || null,
+    checkIn: checkIn || null,
+    checkOut: checkOut || null,
+  });
+}
+
 export function deleteRecord({ dateKey, workerId }) {
   return deleteDoc(doc(db, "records", recordId(dateKey, workerId)));
 }

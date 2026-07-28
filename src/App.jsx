@@ -9,6 +9,7 @@ import HistoryView from "./components/HistoryView";
 import ReportsView from "./components/ReportsView";
 import PayrollView from "./components/PayrollView";
 import DeductionForm from "./components/DeductionForm";
+import LateAttendanceForm from "./components/LateAttendanceForm";
 import SitePickerModal from "./components/SitePickerModal";
 import { todayKey } from "./lib/format";
 import {
@@ -31,12 +32,14 @@ import {
   subscribeDeductions,
   addDeduction,
   removeDeduction,
+  addLateRecord,
 } from "./lib/firestore";
 
 const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
+  { id: "late", label: "تسجيل متأخر" },
   { id: "deduction", label: "تسجيل خصم" },
 ];
 
@@ -327,6 +330,19 @@ export default function App() {
               })
             }
             onRemoveDeduction={removeDeduction}
+          />
+        )}
+
+        {tab === "late" && !isOwner && (
+          <LateAttendanceForm
+            workers={workers}
+            onSubmit={(r) =>
+              addLateRecord({
+                ...r,
+                siteId: session.siteId,
+                siteName: session.siteName,
+              })
+            }
           />
         )}
 
