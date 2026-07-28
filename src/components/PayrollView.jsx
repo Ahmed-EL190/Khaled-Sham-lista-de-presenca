@@ -73,44 +73,89 @@ export default function PayrollView({
         </select>
       </div>
 
-      {/* Summary table */}
-      <div className="overflow-x-auto rounded-xl border border-line bg-white">
-        <table className="w-full min-w-160 text-right text-sm">
-          <thead>
-            <tr className="border-b border-line bg-page text-xs text-out">
-              <th className="px-3 py-2 font-semibold">العامل</th>
-              <th className="px-3 py-2 font-semibold">اليومية</th>
-              <th className="px-3 py-2 font-semibold">أيام كاملة</th>
-              <th className="px-3 py-2 font-semibold">نص أيام</th>
-              <th className="px-3 py-2 font-semibold">الإجمالي</th>
-              <th className="px-3 py-2 font-semibold">الخصومات</th>
-              <th className="px-3 py-2 font-semibold">الصافي</th>
-            </tr>
-          </thead>
-          <tbody className="tabular divide-y divide-line">
-            {summaries.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-xs text-out">
-                  لسه مفيش بيانات في الشهر ده
-                </td>
+      {summaries.length === 0 && (
+        <div className="rounded-xl border border-dashed border-line bg-white/60 py-10 text-center text-sm text-out">
+          لسه مفيش بيانات في الشهر ده
+        </div>
+      )}
+
+      {/* Mobile: stacked cards */}
+      {summaries.length > 0 && (
+        <div className="flex flex-col gap-3 sm:hidden">
+          {summaries.map((s) => (
+            <div key={s.workerId} className="rounded-xl border border-line bg-white p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-base font-bold text-ink">{s.name}</p>
+                <span className="tabular text-lg font-black text-ink">
+                  {s.net.toLocaleString("ar-EG")}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg bg-page px-3 py-2">
+                  <p className="text-out">اليومية</p>
+                  <p className="tabular mt-0.5 font-semibold text-ink">{s.wage}</p>
+                </div>
+                <div className="rounded-lg bg-page px-3 py-2">
+                  <p className="text-out">أيام كاملة</p>
+                  <p className="tabular mt-0.5 font-semibold text-ink">
+                    {s.fullDays + s.offDaysWorked}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-page px-3 py-2">
+                  <p className="text-out">نص أيام</p>
+                  <p className="tabular mt-0.5 font-semibold text-ink">{s.halfDays}</p>
+                </div>
+                <div className="rounded-lg bg-page px-3 py-2">
+                  <p className="text-out">الإجمالي</p>
+                  <p className="tabular mt-0.5 font-semibold text-ink">
+                    {s.gross.toLocaleString("ar-EG")}
+                  </p>
+                </div>
+                <div className="col-span-2 rounded-lg bg-page px-3 py-2">
+                  <p className="text-out">الخصومات</p>
+                  <p className="tabular mt-0.5 font-semibold text-red-600">
+                    {s.deductionsTotal > 0 ? `-${s.deductionsTotal.toLocaleString("ar-EG")}` : "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop / tablet: table */}
+      {summaries.length > 0 && (
+        <div className="hidden overflow-x-auto rounded-xl border border-line bg-white sm:block">
+          <table className="w-full min-w-160 text-right text-sm">
+            <thead>
+              <tr className="border-b border-line bg-page text-xs text-out">
+                <th className="px-3 py-2 font-semibold">العامل</th>
+                <th className="px-3 py-2 font-semibold">اليومية</th>
+                <th className="px-3 py-2 font-semibold">أيام كاملة</th>
+                <th className="px-3 py-2 font-semibold">نص أيام</th>
+                <th className="px-3 py-2 font-semibold">الإجمالي</th>
+                <th className="px-3 py-2 font-semibold">الخصومات</th>
+                <th className="px-3 py-2 font-semibold">الصافي</th>
               </tr>
-            )}
-            {summaries.map((s) => (
-              <tr key={s.workerId}>
-                <td className="px-3 py-2 font-semibold text-ink">{s.name}</td>
-                <td className="px-3 py-2 text-ink-soft">{s.wage}</td>
-                <td className="px-3 py-2 text-ink-soft">{s.fullDays + s.offDaysWorked}</td>
-                <td className="px-3 py-2 text-ink-soft">{s.halfDays}</td>
-                <td className="px-3 py-2 text-ink-soft">{s.gross.toLocaleString("ar-EG")}</td>
-                <td className="px-3 py-2 text-red-600">
-                  {s.deductionsTotal > 0 ? `-${s.deductionsTotal.toLocaleString("ar-EG")}` : "—"}
-                </td>
-                <td className="px-3 py-2 font-bold text-in">{s.net.toLocaleString("ar-EG")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="tabular divide-y divide-line">
+              {summaries.map((s) => (
+                <tr key={s.workerId}>
+                  <td className="px-3 py-2 font-semibold text-ink">{s.name}</td>
+                  <td className="px-3 py-2 text-ink-soft">{s.wage}</td>
+                  <td className="px-3 py-2 text-ink-soft">{s.fullDays + s.offDaysWorked}</td>
+                  <td className="px-3 py-2 text-ink-soft">{s.halfDays}</td>
+                  <td className="px-3 py-2 text-ink-soft">{s.gross.toLocaleString("ar-EG")}</td>
+                  <td className="px-3 py-2 text-red-600">
+                    {s.deductionsTotal > 0 ? `-${s.deductionsTotal.toLocaleString("ar-EG")}` : "—"}
+                  </td>
+                  <td className="px-3 py-2 font-bold text-in">{s.net.toLocaleString("ar-EG")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Add deduction */}
       <div className="rounded-xl border border-line bg-white p-4">

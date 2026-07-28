@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { buildSiteSummaries, buildWorkerSummaries } from "../lib/reports";
 import { formatMonthLabel, formatDateLong, formatDuration, formatTime, todayKey } from "../lib/format";
 
-export default function ReportsView({ workers, sites, records }) {
+export default function ReportsView({ workers, sites, records, canPurge = false, onPurgeWorker }) {
   const [mode, setMode] = useState("worker"); // "worker" | "site"
 
   const monthKeys = useMemo(() => {
@@ -54,6 +54,15 @@ export default function ReportsView({ workers, sites, records }) {
 
   const hasData =
     mode === "worker" ? visibleWorkerSummaries.length > 0 : siteSummaries.length > 0;
+
+  function handlePurge(workerId, name) {
+    const ok = window.confirm(
+      `متأكد إنك عايز تمسح "${name}" نهائي؟\nهيتمسح هو (لو لسه موجود) وكل سجلات حضوره وخصوماته من السجل والتقارير والرواتب، ومفيش رجعة بعد كده.`
+    );
+    if (!ok) return;
+    onPurgeWorker(workerId);
+    if (selectedWorkerId === workerId) setSelectedWorkerId("all");
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -118,11 +127,21 @@ export default function ReportsView({ workers, sites, records }) {
         <div className="flex flex-col gap-3">
           {visibleWorkerSummaries.map((w) => (
             <div key={w.workerId} className="rounded-xl border border-line bg-white p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <p className="text-base font-bold text-ink">{w.name}</p>
-                <span className="tabular rounded-full bg-mist px-3 py-1 text-sm font-bold text-steel">
-                  {w.totalDays} يوم
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="tabular rounded-full bg-mist px-3 py-1 text-sm font-bold text-steel">
+                    {w.totalDays} يوم
+                  </span>
+                  {canPurge && (
+                    <button
+                      onClick={() => handlePurge(w.workerId, w.name)}
+                      className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                    >
+                      مسح نهائي
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {Object.entries(w.sites).map(([siteName, days]) => (

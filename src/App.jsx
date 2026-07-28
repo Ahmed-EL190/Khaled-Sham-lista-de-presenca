@@ -8,6 +8,8 @@ import ScheduleManager from "./components/ScheduleManager";
 import HistoryView from "./components/HistoryView";
 import ReportsView from "./components/ReportsView";
 import PayrollView from "./components/PayrollView";
+import DeductionForm from "./components/DeductionForm";
+import SitePickerModal from "./components/SitePickerModal";
 import { todayKey } from "./lib/format";
 import {
   subscribeSites,
@@ -17,6 +19,7 @@ import {
   addWorker,
   updateWorker,
   removeWorker,
+  purgeWorker,
   subscribeRecordsForDate,
   subscribeAllRecords,
   punchIn,
@@ -34,7 +37,7 @@ const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
-  { id: "payroll", label: "الرواتب" },
+  { id: "deduction", label: "تسجيل خصم" },
 ];
 
 const OWNER_TABS = [
@@ -54,10 +57,13 @@ export default function App() {
   const [schedule, setSchedule] = useState({ offDays: [0], halfDays: [6] });
   const [deductions, setDeductions] = useState([]);
   const [tab, setTab] = useState("today");
+  const [search, setSearch] = useState("");
+  const [pendingWorkerId, setPendingWorkerId] = useState(null);
 
   const today = todayKey();
   const isOwner = session?.role === "owner";
   const scopeSiteId = isOwner ? null : session?.siteId || null;
+  const searchTerm = search.trim();
 
   useEffect(() => {
     const unsub = subscribeSites(setSites);
@@ -71,10 +77,10 @@ export default function App() {
 
   useEffect(() => {
     if (!session) return;
-    const unsubWorkers = subscribeWorkers(scopeSiteId, setWorkers);
-    const unsubToday = subscribeRecordsForDate(today, scopeSiteId, setTodayRecords);
+    const unsubWorkers = subscribeWorkers(setWorkers);
+    const unsubToday = subscribeRecordsForDate(today, setTodayRecords);
     const unsubAll = subscribeAllRecords(scopeSiteId, setAllRecords);
-    const unsubDeductions = subscribeDeductions(scopeSiteId, setDeductions);
+    const unsubDeductions = isOwner ? subscribeDeductions(null, setDeductions) : () => {};
     return () => {
       unsubWorkers();
       unsubToday();
@@ -82,7 +88,7 @@ export default function App() {
       unsubDeductions();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, scopeSiteId, today]);
+  }, [session, scopeSiteId, today, isOwner]);
 
   const todayByWorker = useMemo(() => {
     const map = {};
@@ -90,11 +96,17 @@ export default function App() {
     return map;
   }, [todayRecords]);
 
-  const presentCount = todayRecords.filter((r) => r.checkIn).length;
+  const presentCount = todayRecords.filter((r) => r.checkIn && !r.checkOut).length;
+
+  const filteredWorkers = useMemo(
+    () => workers.filter((w) => !searchTerm || w.name.includes(searchTerm)),
+    [workers, searchTerm]
+  );
 
   function handleLogin(newSession) {
     setSession(newSession);
     setTab("today");
+    setSearch("");
   }
 
   function handleLogout() {
@@ -106,17 +118,39 @@ export default function App() {
     const entry = todayByWorker[workerId];
     if (!worker) return;
 
-    if (!entry?.checkIn) {
+    if (entry?.checkIn && !entry?.checkOut) {
+      punchOut({ dateKey: today, workerId });
+      return;
+    }
+    if (entry?.checkIn) return; // خلص يومه، لو غلط استخدم "تصحيح"
+
+    if (sites.length <= 1) {
+      const site = sites[0];
       punchIn({
         dateKey: today,
         workerId,
         workerName: worker.name,
-        siteId: session.siteId,
-        siteName: session.siteName,
+        siteId: site?.id || session.siteId,
+        siteName: site?.name || session.siteName,
       });
-    } else if (entry.checkIn && !entry.checkOut) {
-      punchOut({ dateKey: today, workerId });
+    } else {
+      setPendingWorkerId(workerId);
     }
+  }
+
+  function confirmSitePick(siteId) {
+    const site = sites.find((s) => s.id === siteId);
+    const worker = workers.find((w) => w.id === pendingWorkerId);
+    if (site && worker) {
+      punchIn({
+        dateKey: today,
+        workerId: worker.id,
+        workerName: worker.name,
+        siteId: site.id,
+        siteName: site.name,
+      });
+    }
+    setPendingWorkerId(null);
   }
 
   function handleReset(workerId) {
@@ -136,6 +170,10 @@ export default function App() {
   const tabs = isOwner ? OWNER_TABS : FOREMAN_TABS;
   const siteLabel = isOwner ? "كل الورش" : session.siteName;
 
+  const pendingWorkers = workers
+    .filter((w) => !todayRecords.some((r) => r.workerId === w.id))
+    .filter((w) => !searchTerm || w.name.includes(searchTerm));
+
   return (
     <div className="min-h-screen">
       <Header
@@ -145,13 +183,23 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      <main className="mx-auto max-w-5xl px-5 py-6">
-        <nav className="mb-5 inline-flex w-fit rounded-lg border border-line bg-white p-1">
+      {pendingWorkerId && (
+        <SitePickerModal
+          sites={sites}
+          defaultSiteId={session.siteId}
+          workerName={workers.find((w) => w.id === pendingWorkerId)?.name || ""}
+          onConfirm={confirmSitePick}
+          onCancel={() => setPendingWorkerId(null)}
+        />
+      )}
+
+      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-6">
+        <nav className="mb-5 flex w-fit flex-wrap gap-1 rounded-lg border border-line bg-white p-1">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:px-4 sm:text-sm ${
                 tab === t.id ? "bg-ink text-white" : "text-out hover:text-ink"
               }`}
             >
@@ -162,13 +210,23 @@ export default function App() {
 
         {tab === "today" && !isOwner && (
           <>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="دور على اسم عامل..."
+              className="mb-4 w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs"
+            />
             {workers.length === 0 ? (
               <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
-                لسه مفيش عمال متضافين للورشة دي، كلم صاحب الشركة يضيفهم
+                لسه مفيش عمال متضافين، كلم صاحب الشركة يضيفهم
+              </div>
+            ) : filteredWorkers.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+                مفيش عامل بالاسم ده
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {workers.map((worker) => (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                {filteredWorkers.map((worker) => (
                   <WorkerCard
                     key={worker.id}
                     worker={worker}
@@ -184,35 +242,43 @@ export default function App() {
 
         {tab === "today" && isOwner && (
           <div className="flex flex-col gap-6">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="دور على اسم عامل..."
+              className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs"
+            />
+
             {sites.length === 0 && (
               <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
                 لسه مفيش ورش مضافة
               </div>
             )}
+
             {sites.map((site) => {
-              const siteWorkers = workers.filter((w) => w.siteId === site.id);
-              const sitePresent = todayRecords.filter(
-                (r) => r.siteId === site.id && r.checkIn
-              ).length;
+              const siteRecords = todayRecords
+                .filter((r) => r.siteId === site.id)
+                .filter((r) => !searchTerm || (r.workerName || "").includes(searchTerm));
+              const sitePresent = siteRecords.filter((r) => r.checkIn && !r.checkOut).length;
               return (
                 <div key={site.id}>
                   <div className="mb-2 flex items-center justify-between">
                     <h2 className="text-sm font-bold text-ink">{site.name}</h2>
                     <span className="tabular rounded-full bg-mist px-2.5 py-1 text-xs font-bold text-steel">
-                      {sitePresent}/{siteWorkers.length} حاضر
+                      {sitePresent} في الورشة دلوقتي
                     </span>
                   </div>
-                  {siteWorkers.length === 0 ? (
+                  {siteRecords.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-line bg-white/60 px-4 py-3 text-xs text-out">
-                      مفيش عمال مضافين للورشة دي
+                      محدش سجل حضور في الورشة دي النهاردة
                     </p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                      {siteWorkers.map((worker) => (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                      {siteRecords.map((r) => (
                         <WorkerCard
-                          key={worker.id}
-                          worker={worker}
-                          entry={todayByWorker[worker.id]}
+                          key={r.workerId}
+                          worker={{ id: r.workerId, name: r.workerName }}
+                          entry={r}
                           readOnly
                         />
                       ))}
@@ -221,6 +287,17 @@ export default function App() {
                 </div>
               );
             })}
+
+            {pendingWorkers.length > 0 && (
+              <div>
+                <h2 className="mb-2 text-sm font-bold text-ink">لسه ما جوش النهاردة</h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                  {pendingWorkers.map((w) => (
+                    <WorkerCard key={w.id} worker={w} entry={null} readOnly />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -231,10 +308,12 @@ export default function App() {
             workers={workers}
             sites={isOwner ? sites : [{ id: session.siteId, name: session.siteName }]}
             records={allRecords}
+            canPurge={isOwner}
+            onPurgeWorker={purgeWorker}
           />
         )}
 
-        {tab === "payroll" && (
+        {tab === "payroll" && isOwner && (
           <PayrollView
             workers={workers}
             records={allRecords}
@@ -251,6 +330,19 @@ export default function App() {
           />
         )}
 
+        {tab === "deduction" && !isOwner && (
+          <DeductionForm
+            workers={workers}
+            onSubmit={(d) =>
+              addDeduction({
+                ...d,
+                siteId: session.siteId,
+                siteName: session.siteName,
+              })
+            }
+          />
+        )}
+
         {tab === "manage" && isOwner && (
           <div className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -263,9 +355,9 @@ export default function App() {
             </div>
             <OwnerWorkersManager
               workers={workers}
-              sites={sites}
-              onAdd={(name, wage, siteId) => addWorker({ name, wage, siteId })}
+              onAdd={(name, wage) => addWorker({ name, wage })}
               onRemove={removeWorker}
+              onPurge={purgeWorker}
               onUpdate={updateWorker}
             />
           </div>

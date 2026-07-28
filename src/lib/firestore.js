@@ -7,6 +7,8 @@ import {
   onSnapshot,
   query,
   where,
+  getDocs,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -28,15 +30,13 @@ export function removeSite(id) {
 }
 
 // ---------- Workers ----------
-export function subscribeWorkers(siteId, cb) {
-  const q = siteId
-    ? query(collection(db, "workers"), where("siteId", "==", siteId))
-    : collection(db, "workers");
-  return onSnapshot(q, (snap) => cb(docsFromSnap(snap)));
+// العمال قايمة واحدة مشتركة بين كل الورش (مفيش ورشة ثابتة للعامل).
+export function subscribeWorkers(cb) {
+  return onSnapshot(collection(db, "workers"), (snap) => cb(docsFromSnap(snap)));
 }
 
-export function addWorker({ name, siteId, wage }) {
-  return addDoc(collection(db, "workers"), { name, siteId, wage: Number(wage) || 0 });
+export function addWorker({ name, wage }) {
+  return addDoc(collection(db, "workers"), { name, wage: Number(wage) || 0 });
 }
 
 export function updateWorker(id, patch) {
@@ -53,11 +53,10 @@ function recordId(dateKey, workerId) {
   return `${dateKey}__${workerId}`;
 }
 
-export function subscribeRecordsForDate(dateKey, siteId, cb) {
-  const base = collection(db, "records");
-  const q = siteId
-    ? query(base, where("dateKey", "==", dateKey), where("siteId", "==", siteId))
-    : query(base, where("dateKey", "==", dateKey));
+// سجلات "اليوم" لازم تبقى عامة (مش مقفولة على ورشة) عشان كل الفورمانات
+// يشوفوا مين اتسجل حضوره فين، ومايحصلش تسجيل مزدوج لنفس العامل في ورشتين.
+export function subscribeRecordsForDate(dateKey, cb) {
+  const q = query(collection(db, "records"), where("dateKey", "==", dateKey));
   return onSnapshot(q, (snap) => cb(docsFromSnap(snap)));
 }
 
@@ -100,13 +99,12 @@ export function deleteRecord({ dateKey, workerId }) {
 }
 
 // ---------- Weekly schedule (which days are off / half-day) ----------
-// doc: settings/schedule -> { offDays: [0], halfDays: [6] }  (0=Sunday ... 6=Saturday)
 export function subscribeSchedule(cb) {
   return onSnapshot(doc(db, "settings", "schedule"), (snap) => {
     if (snap.exists()) {
       cb(snap.data());
     } else {
-      cb({ offDays: [0], halfDays: [6] }); // default: Sunday off, Saturday half
+      cb({ offDays: [0], halfDays: [6] });
     }
   });
 }
@@ -116,6 +114,7 @@ export function saveSchedule(schedule) {
 }
 
 // ---------- Deductions ----------
+// الفورمان بس بيضيف، وبيوصل لصاحب الشركة فقط (مبيتعرضش على الفورمان أبدًا).
 export function subscribeDeductions(siteId, cb) {
   const base = collection(db, "deductions");
   const q = siteId ? query(base, where("siteId", "==", siteId)) : base;
@@ -137,4 +136,21 @@ export function addDeduction({ workerId, workerName, siteId, siteName, dateKey, 
 
 export function removeDeduction(id) {
   return deleteDoc(doc(db, "deductions", id));
+}
+
+// ---------- Purge (delete worker + ALL their history everywhere) ----------
+export async function purgeWorker(workerId) {
+  const recordsQ = query(collection(db, "records"), where("workerId", "==", workerId));
+  const deductionsQ = query(collection(db, "deductions"), where("workerId", "==", workerId));
+  const [recordsSnap, deductionsSnap] = await Promise.all([
+    getDocs(recordsQ),
+    getDocs(deductionsQ),
+  ]);
+
+  const batch = writeBatch(db);
+  recordsSnap.docs.forEach((d) => batch.delete(d.ref));
+  deductionsSnap.docs.forEach((d) => batch.delete(d.ref));
+  batch.delete(doc(db, "workers", workerId));
+
+  await batch.commit();
 }
