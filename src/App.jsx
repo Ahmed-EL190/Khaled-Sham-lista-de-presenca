@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Login from "./components/Login";
 import WorkerCard from "./components/WorkerCard";
-import ListManager from "./components/ListManager";
+import WorkersManager from "./components/WorkersManager";
 import SitesManager from "./components/SitesManager";
+import ScheduleManager from "./components/ScheduleManager";
 import HistoryView from "./components/HistoryView";
 import ReportsView from "./components/ReportsView";
+import PayrollView from "./components/PayrollView";
 import { todayKey } from "./lib/format";
 import {
   subscribeSites,
@@ -13,6 +15,7 @@ import {
   removeSite,
   subscribeWorkers,
   addWorker,
+  updateWorker,
   removeWorker,
   subscribeRecordsForDate,
   subscribeAllRecords,
@@ -20,6 +23,11 @@ import {
   punchOut,
   clearCheckOut,
   deleteRecord,
+  subscribeSchedule,
+  saveSchedule,
+  subscribeDeductions,
+  addDeduction,
+  removeDeduction,
 } from "./lib/firestore";
 
 const SESSION_KEY = "khs_session";
@@ -28,6 +36,7 @@ const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
+  { id: "payroll", label: "الرواتب" },
   { id: "manage", label: "الإدارة" },
 ];
 
@@ -35,6 +44,7 @@ const OWNER_TABS = [
   { id: "today", label: "اليوم" },
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
+  { id: "payroll", label: "الرواتب" },
   { id: "manage", label: "الورش" },
 ];
 
@@ -53,15 +63,21 @@ export default function App() {
   const [workers, setWorkers] = useState([]);
   const [todayRecords, setTodayRecords] = useState([]);
   const [allRecords, setAllRecords] = useState([]);
+  const [schedule, setSchedule] = useState({ offDays: [0], halfDays: [6] });
+  const [deductions, setDeductions] = useState([]);
   const [tab, setTab] = useState("today");
 
   const today = todayKey();
   const isOwner = session?.role === "owner";
   const scopeSiteId = isOwner ? null : session?.siteId || null;
 
-  // sites are needed for login matching regardless of session state
   useEffect(() => {
     const unsub = subscribeSites(setSites);
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = subscribeSchedule(setSchedule);
     return unsub;
   }, []);
 
@@ -70,10 +86,12 @@ export default function App() {
     const unsubWorkers = subscribeWorkers(scopeSiteId, setWorkers);
     const unsubToday = subscribeRecordsForDate(today, scopeSiteId, setTodayRecords);
     const unsubAll = subscribeAllRecords(scopeSiteId, setAllRecords);
+    const unsubDeductions = subscribeDeductions(scopeSiteId, setDeductions);
     return () => {
       unsubWorkers();
       unsubToday();
       unsubAll();
+      unsubDeductions();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, scopeSiteId, today]);
@@ -236,22 +254,41 @@ export default function App() {
           />
         )}
 
+        {tab === "payroll" && (
+          <PayrollView
+            workers={workers}
+            records={allRecords}
+            deductions={deductions}
+            schedule={schedule}
+            onAddDeduction={(d) =>
+              addDeduction({
+                ...d,
+                siteId: session.siteId,
+                siteName: session.siteName,
+              })
+            }
+            onRemoveDeduction={removeDeduction}
+          />
+        )}
+
         {tab === "manage" && !isOwner && (
-          <ListManager
-            title="العمال"
-            placeholder="اسم العامل"
-            items={workers}
-            onAdd={(name) => addWorker({ name, siteId: session.siteId })}
+          <WorkersManager
+            workers={workers}
+            onAdd={(name, wage) => addWorker({ name, wage, siteId: session.siteId })}
             onRemove={removeWorker}
+            onUpdateWage={(id, wage) => updateWorker(id, { wage })}
           />
         )}
 
         {tab === "manage" && isOwner && (
-          <SitesManager
-            sites={sites}
-            onAdd={(name, pin) => addSite({ name, pin })}
-            onRemove={removeSite}
-          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SitesManager
+              sites={sites}
+              onAdd={(name, pin) => addSite({ name, pin })}
+              onRemove={removeSite}
+            />
+            <ScheduleManager schedule={schedule} onChange={saveSchedule} />
+          </div>
         )}
       </main>
     </div>

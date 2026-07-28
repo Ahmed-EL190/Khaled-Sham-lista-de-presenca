@@ -35,8 +35,12 @@ export function subscribeWorkers(siteId, cb) {
   return onSnapshot(q, (snap) => cb(docsFromSnap(snap)));
 }
 
-export function addWorker({ name, siteId }) {
-  return addDoc(collection(db, "workers"), { name, siteId });
+export function addWorker({ name, siteId, wage }) {
+  return addDoc(collection(db, "workers"), { name, siteId, wage: Number(wage) || 0 });
+}
+
+export function updateWorker(id, patch) {
+  return setDoc(doc(db, "workers", id), patch, { merge: true });
 }
 
 export function removeWorker(id) {
@@ -93,4 +97,44 @@ export function clearCheckOut({ dateKey, workerId }) {
 
 export function deleteRecord({ dateKey, workerId }) {
   return deleteDoc(doc(db, "records", recordId(dateKey, workerId)));
+}
+
+// ---------- Weekly schedule (which days are off / half-day) ----------
+// doc: settings/schedule -> { offDays: [0], halfDays: [6] }  (0=Sunday ... 6=Saturday)
+export function subscribeSchedule(cb) {
+  return onSnapshot(doc(db, "settings", "schedule"), (snap) => {
+    if (snap.exists()) {
+      cb(snap.data());
+    } else {
+      cb({ offDays: [0], halfDays: [6] }); // default: Sunday off, Saturday half
+    }
+  });
+}
+
+export function saveSchedule(schedule) {
+  return setDoc(doc(db, "settings", "schedule"), schedule);
+}
+
+// ---------- Deductions ----------
+export function subscribeDeductions(siteId, cb) {
+  const base = collection(db, "deductions");
+  const q = siteId ? query(base, where("siteId", "==", siteId)) : base;
+  return onSnapshot(q, (snap) => cb(docsFromSnap(snap)));
+}
+
+export function addDeduction({ workerId, workerName, siteId, siteName, dateKey, amount, reason }) {
+  return addDoc(collection(db, "deductions"), {
+    workerId,
+    workerName,
+    siteId: siteId || null,
+    siteName: siteName || null,
+    dateKey,
+    amount: Number(amount) || 0,
+    reason: reason || "",
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export function removeDeduction(id) {
+  return deleteDoc(doc(db, "deductions", id));
 }
