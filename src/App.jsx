@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Login from "./components/Login";
 import WorkerCard from "./components/WorkerCard";
-import WorkersManager from "./components/WorkersManager";
+import OwnerWorkersManager from "./components/OwnerWorkersManager";
 import SitesManager from "./components/SitesManager";
 import ScheduleManager from "./components/ScheduleManager";
 import HistoryView from "./components/HistoryView";
@@ -30,14 +30,11 @@ import {
   removeDeduction,
 } from "./lib/firestore";
 
-const SESSION_KEY = "khs_session";
-
 const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
   { id: "payroll", label: "الرواتب" },
-  { id: "manage", label: "الإدارة" },
 ];
 
 const OWNER_TABS = [
@@ -45,20 +42,11 @@ const OWNER_TABS = [
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
   { id: "payroll", label: "الرواتب" },
-  { id: "manage", label: "الورش" },
+  { id: "manage", label: "الإدارة" },
 ];
 
-function loadSession() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 export default function App() {
-  const [session, setSession] = useState(loadSession);
+  const [session, setSession] = useState(null);
   const [sites, setSites] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [todayRecords, setTodayRecords] = useState([]);
@@ -105,13 +93,11 @@ export default function App() {
   const presentCount = todayRecords.filter((r) => r.checkIn).length;
 
   function handleLogin(newSession) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(newSession));
     setSession(newSession);
     setTab("today");
   }
 
   function handleLogout() {
-    localStorage.removeItem(SESSION_KEY);
     setSession(null);
   }
 
@@ -177,14 +163,8 @@ export default function App() {
         {tab === "today" && !isOwner && (
           <>
             {workers.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center">
-                <p className="text-sm text-out">لسه مفيش عمال مضافين في الورشة دي</p>
-                <button
-                  onClick={() => setTab("manage")}
-                  className="mt-3 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
-                >
-                  إضافة عمال
-                </button>
+              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+                لسه مفيش عمال متضافين للورشة دي، كلم صاحب الشركة يضيفهم
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -271,23 +251,23 @@ export default function App() {
           />
         )}
 
-        {tab === "manage" && !isOwner && (
-          <WorkersManager
-            workers={workers}
-            onAdd={(name, wage) => addWorker({ name, wage, siteId: session.siteId })}
-            onRemove={removeWorker}
-            onUpdateWage={(id, wage) => updateWorker(id, { wage })}
-          />
-        )}
-
         {tab === "manage" && isOwner && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SitesManager
+          <div className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SitesManager
+                sites={sites}
+                onAdd={(name, pin) => addSite({ name, pin })}
+                onRemove={removeSite}
+              />
+              <ScheduleManager schedule={schedule} onChange={saveSchedule} />
+            </div>
+            <OwnerWorkersManager
+              workers={workers}
               sites={sites}
-              onAdd={(name, pin) => addSite({ name, pin })}
-              onRemove={removeSite}
+              onAdd={(name, wage, siteId) => addWorker({ name, wage, siteId })}
+              onRemove={removeWorker}
+              onUpdate={updateWorker}
             />
-            <ScheduleManager schedule={schedule} onChange={saveSchedule} />
           </div>
         )}
       </main>
