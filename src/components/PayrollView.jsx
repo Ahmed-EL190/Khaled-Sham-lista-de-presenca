@@ -9,7 +9,23 @@ export default function PayrollView({
   schedule,
   onAddDeduction,
   onRemoveDeduction,
+  onUpdateDeduction,
 }) {
+  const [editingId, setEditingId] = useState(null);
+  const [editAmount, setEditAmount] = useState("");
+
+  function startEdit(d) {
+    setEditingId(d.id);
+    setEditAmount(d.amount);
+  }
+
+  function saveEdit(d) {
+    const num = Number(editAmount);
+    if (!Number.isNaN(num) && num !== Number(d.amount)) {
+      onUpdateDeduction(d.id, { amount: num });
+    }
+    setEditingId(null);
+  }
   const monthKeys = useMemo(() => {
     const set = new Set([
       ...records.map((r) => r.dateKey?.slice(0, 7)),
@@ -228,8 +244,36 @@ export default function PayrollView({
                     </p>
                     {d.reason && <p className="text-xs text-out">{d.reason}</p>}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="tabular font-bold text-red-600">-{d.amount}</span>
+                  <div className="flex items-center gap-2">
+                    {editingId === d.id ? (
+                      <>
+                        <input
+                          autoFocus
+                          type="number"
+                          value={editAmount}
+                          onChange={(e) => setEditAmount(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEdit(d);
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                          className="tabular w-20 rounded-lg border border-steel bg-white px-2 py-1 text-sm text-ink outline-none"
+                        />
+                        <button
+                          onClick={() => saveEdit(d)}
+                          className="rounded-md px-2 py-1 text-xs font-semibold text-in hover:bg-page"
+                        >
+                          حفظ
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => startEdit(d)}
+                        title="دوس تعدل المبلغ"
+                        className="tabular font-bold text-red-600 hover:underline"
+                      >
+                        -{d.amount}
+                      </button>
+                    )}
                     <button
                       onClick={() => onRemoveDeduction(d.id)}
                       className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
