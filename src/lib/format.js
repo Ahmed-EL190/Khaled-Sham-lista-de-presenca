@@ -15,6 +15,12 @@ export function formatTime(iso) {
   });
 }
 
+export function formatMonthLabel(monthKey) {
+  const [y, m] = monthKey.split("-").map(Number);
+  const date = new Date(y, m - 1, 1);
+  return date.toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
+}
+
 export function formatDateLong(dateKey) {
   const [y, m, d] = dateKey.split("-").map(Number);
   const date = new Date(y, m - 1, d);
