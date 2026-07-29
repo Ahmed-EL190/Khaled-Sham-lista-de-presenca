@@ -117,9 +117,7 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
   return (
     <div className="rounded-xl border border-line bg-white p-4">
       <h3 className="text-sm font-bold text-ink">العمال</h3>
-      <p className="mt-0.5 text-xs text-out">
-        إنت بس اللي بتضيف وتمسح العمال. أي فورمان يقدر يسجل حضور أي عامل من القايمة ويحدد اشتغل في انهي ورشة النهاردة. المرتب اللي بتحطه هو الإجمالي الشهري بالكوانزا (Kz)، واليومية بتتحسب أوتوماتيك بقسمته على 30.
-      </p>
+      
 
       <form onSubmit={submit} className="mt-3 flex flex-wrap gap-2">
         <input
