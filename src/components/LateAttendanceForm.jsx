@@ -68,7 +68,9 @@ function SingleForm({ workers, onSubmit }) {
   return (
     <div className="rounded-xl border border-line bg-white p-5">
       <h3 className="text-sm font-bold text-ink">تسجيل حضور متأخر</h3>
-      
+      <p className="mt-0.5 text-xs text-out">
+        لو نسيت تسجل عامل — سواء النهاردة أو في يوم فات — سجله من هنا بساعة الحضور الصح. لو فيه تسجيل للعامل ده في نفس اليوم، هيتستبدل بالبيانات الجديدة.
+      </p>
 
       <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
         <div className="flex flex-col gap-1">
@@ -143,7 +145,7 @@ function BulkForm({ workers, onSubmit }) {
   const [done, setDone] = useState(0);
 
   const filteredWorkers = workers.filter(
-    (w) => !search.trim() || w.name.includes(search.trim())
+    (w) => !search.trim() || w.name.toLowerCase().includes(search.trim().toLowerCase())
   );
   const selectedIds = Object.keys(selected).filter((id) => selected[id]);
   const selectedCount = selectedIds.length;
@@ -197,8 +199,10 @@ function BulkForm({ workers, onSubmit }) {
 
   return (
     <div className="rounded-xl border border-line bg-white p-5">
-      <h3 className="text-sm font-bold text-ink">تسجيل جماعي </h3>
-      
+      <h3 className="text-sm font-bold text-ink">تسجيل جماعي (يوم مفيش فيه نت)</h3>
+      <p className="mt-0.5 text-xs text-out">
+        اختار التاريخ وساعة الحضور العامة، وحدد كل اللي حضروا من القايمة تحت. لو حد جه بوقت مختلف عدّل ساعته لوحده. وفي الآخر دوس "تسجيل الكل".
+      </p>
 
       <form onSubmit={submitAll} className="mt-4 flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">

@@ -102,7 +102,10 @@ export default function App() {
   const presentCount = todayRecords.filter((r) => r.checkIn && !r.checkOut).length;
 
   const filteredWorkers = useMemo(
-    () => workers.filter((w) => !searchTerm || w.name.includes(searchTerm)),
+    () =>
+      workers.filter(
+        (w) => !searchTerm || w.name.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
     [workers, searchTerm]
   );
 
@@ -175,7 +178,9 @@ export default function App() {
 
   const pendingWorkers = workers
     .filter((w) => !todayRecords.some((r) => r.workerId === w.id))
-    .filter((w) => !searchTerm || w.name.includes(searchTerm));
+    .filter(
+      (w) => !searchTerm || w.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
   return (
     <div className="min-h-screen">
@@ -261,7 +266,11 @@ export default function App() {
             {sites.map((site) => {
               const siteRecords = todayRecords
                 .filter((r) => r.siteId === site.id)
-                .filter((r) => !searchTerm || (r.workerName || "").includes(searchTerm));
+                .filter(
+                  (r) =>
+                    !searchTerm ||
+                    (r.workerName || "").toLowerCase().includes(searchTerm.toLowerCase())
+                );
               const sitePresent = siteRecords.filter((r) => r.checkIn && !r.checkOut).length;
               return (
                 <div key={site.id}>
@@ -304,13 +313,7 @@ export default function App() {
           </div>
         )}
 
-        {tab === "history" && (
-          <HistoryView
-            records={allRecords}
-            todayKey={today}
-            onDelete={({ dateKey, workerId }) => deleteRecord({ dateKey, workerId })}
-          />
-        )}
+        {tab === "history" && <HistoryView records={allRecords} todayKey={today} onDelete={({ dateKey, workerId }) => deleteRecord({ dateKey, workerId })} />}
 
         {tab === "reports" && (
           <ReportsView
