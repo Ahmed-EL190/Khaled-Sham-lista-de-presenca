@@ -162,9 +162,7 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
 
       {bulkOpen && (
         <form onSubmit={submitBulk} className="mt-3 flex flex-col gap-2 rounded-lg border border-line bg-page p-3">
-          <label className="text-xs font-medium text-out">
-            الصق كل اسم في سطر لوحده
-          </label>
+          
           <textarea
             value={bulkNames}
             onChange={(e) => setBulkNames(e.target.value)}
@@ -192,9 +190,7 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
 
       {salaryMode ? (
         <div className="mt-3 rounded-lg border border-line bg-page p-3">
-          <p className="text-xs text-out">
-            غيّر مرتب أي عامل هنا براحتك (المرتب الإجمالي الشهري)، وكمّل على كل الأسماء اللي عايزها، وفي الآخر دوس "حفظ" مرة واحدة يحفظ كل التعديلات
-          </p>
+          
 
           {workers.length === 0 ? (
             <p className="py-3 text-center text-xs text-out">لسه مفيش عمال مضافين</p>

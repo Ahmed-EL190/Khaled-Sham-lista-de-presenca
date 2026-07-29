@@ -30,9 +30,7 @@ export default function DeductionForm({ workers, onSubmit }) {
   return (
     <div className="mx-auto max-w-md rounded-xl border border-line bg-white p-5">
       <h3 className="text-sm font-bold text-ink">تسجيل خصم على عامل</h3>
-      <p className="mt-0.5 text-xs text-out">
-        الخصم بيتحول تلقائي لصاحب الشركة، ومش هتقدر تشوف الخصومات القديمة من هنا
-      </p>
+      
 
       <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
         <div className="flex flex-col gap-1">
