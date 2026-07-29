@@ -190,13 +190,13 @@ export default function PayrollView({
       {/* Add deduction */}
       <div className="rounded-xl border border-line bg-white p-4">
         <h3 className="text-sm font-bold text-ink">تسجيل خصم</h3>
-        <form onSubmit={submitDeduction} className="mt-3 flex flex-wrap items-end gap-2">
-          <div className="flex flex-col gap-1">
+        <form onSubmit={submitDeduction} className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2">
+          <div className="flex w-full flex-col gap-1 sm:w-44">
             <label className="text-[11px] text-out">العامل</label>
             <select
               value={formWorkerId}
               onChange={(e) => setFormWorkerId(e.target.value)}
-              className="rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              className="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
             >
               {workers.map((w) => (
                 <option key={w.id} value={w.id}>
@@ -205,26 +205,26 @@ export default function PayrollView({
               ))}
             </select>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex w-full flex-col gap-1 sm:w-36">
             <label className="text-[11px] text-out">التاريخ</label>
             <input
               type="date"
               value={formDate}
               onChange={(e) => setFormDate(e.target.value)}
-              className="tabular rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
             />
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex w-full flex-col gap-1 sm:w-24">
             <label className="text-[11px] text-out">المبلغ (Kz)</label>
             <input
               type="number"
               value={formAmount}
               onChange={(e) => setFormAmount(e.target.value)}
               placeholder="0"
-              className="tabular w-24 rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
             />
           </div>
-          <div className="flex flex-1 min-w-40 flex-col gap-1">
+          <div className="flex w-full flex-1 flex-col gap-1 sm:min-w-40">
             <label className="text-[11px] text-out">السبب (اختياري)</label>
             <input
               value={formReason}
@@ -235,7 +235,7 @@ export default function PayrollView({
           </div>
           <button
             type="submit"
-            className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink-soft"
+            className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink-soft sm:w-auto"
           >
             تسجيل
           </button>
