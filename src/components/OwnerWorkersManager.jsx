@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
+function dailyFromMonthly(monthly) {
+  return Math.round(((monthly || 0) / 30) * 10) / 10;
+}
+
 export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge, onUpdate }) {
   const [name, setName] = useState("");
   const [wage, setWage] = useState("");
@@ -95,7 +99,7 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
   }
 
   function editWage(worker) {
-    const value = window.prompt(`اليومية بتاعة ${worker.name}؟`, worker.wage || 0);
+    const value = window.prompt(`المرتب الإجمالي الشهري بتاع ${worker.name}؟ (Kz)`, worker.wage || 0);
     if (value === null) return;
     const num = Number(value);
     if (Number.isNaN(num)) return;
@@ -114,7 +118,7 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
     <div className="rounded-xl border border-line bg-white p-4">
       <h3 className="text-sm font-bold text-ink">العمال</h3>
       <p className="mt-0.5 text-xs text-out">
-        إنت بس اللي بتضيف وتمسح العمال. أي فورمان يقدر يسجل حضور أي عامل من القايمة ويحدد اشتغل في انهي ورشة النهاردة
+        إنت بس اللي بتضيف وتمسح العمال. أي فورمان يقدر يسجل حضور أي عامل من القايمة ويحدد اشتغل في انهي ورشة النهاردة. المرتب اللي بتحطه هو الإجمالي الشهري بالكوانزا (Kz)، واليومية بتتحسب أوتوماتيك بقسمته على 30.
       </p>
 
       <form onSubmit={submit} className="mt-3 flex flex-wrap gap-2">
@@ -127,9 +131,9 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
         <input
           value={wage}
           onChange={(e) => setWage(e.target.value)}
-          placeholder="اليومية"
+          placeholder="المرتب الإجمالي (شهري، Kz)"
           type="number"
-          className="tabular w-24 rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+          className="tabular w-40 rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
         />
         <button
           type="submit"
@@ -174,7 +178,7 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
             <input
               value={bulkWage}
               onChange={(e) => setBulkWage(e.target.value)}
-              placeholder="اليومية لكل الأسماء دي (اختياري)"
+              placeholder="المرتب الإجمالي الشهري لكل الأسماء دي (Kz، اختياري)"
               type="number"
               className="tabular flex-1 rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-steel"
             />
@@ -191,7 +195,7 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
       {salaryMode ? (
         <div className="mt-3 rounded-lg border border-line bg-page p-3">
           <p className="text-xs text-out">
-            غيّر مرتب أي عامل هنا براحتك، وكمّل على كل الأسماء اللي عايزها، وفي الآخر دوس "حفظ" مرة واحدة يحفظ كل التعديلات
+            غيّر مرتب أي عامل هنا براحتك (المرتب الإجمالي الشهري)، وكمّل على كل الأسماء اللي عايزها، وفي الآخر دوس "حفظ" مرة واحدة يحفظ كل التعديلات
           </p>
 
           {workers.length === 0 ? (
@@ -213,7 +217,10 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
                           isDirty ? "border-steel bg-white text-ink" : "border-line bg-white text-ink"
                         }`}
                       />
-                      <span className="text-xs text-out">ج/يوم</span>
+                      <span className="text-xs text-out">Kz/شهر</span>
+                      <span className="text-[11px] text-out">
+                        (≈ {dailyFromMonthly(draftVal).toLocaleString("en-US")} Kz/يوم)
+                      </span>
                     </div>
                   </li>
                 );
@@ -250,9 +257,13 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => editWage(w)}
+                  title="دوس تعدل المرتب الإجمالي الشهري"
                   className="tabular rounded-full bg-page px-2.5 py-1 text-xs font-semibold text-steel hover:bg-mist"
                 >
-                  {w.wage || 0} ج/يوم
+                  {(w.wage || 0).toLocaleString("en-US")} Kz/شهر
+                  <span className="mr-1 text-out">
+                    (≈ {dailyFromMonthly(w.wage).toLocaleString("en-US")} Kz/يوم)
+                  </span>
                 </button>
                 <button
                   onClick={() => onRemove(w.id)}

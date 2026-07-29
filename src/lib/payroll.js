@@ -8,14 +8,23 @@ export function dayType(dateKey, schedule) {
   return "full";
 }
 
+// المرتب اللي بيتحط لكل عامل هو المرتب الإجمالي الشهري، واليومية بتتحسب منه أوتوماتيك بقسمته على 30 يوم.
+const DAYS_IN_MONTH = 30;
+
+export function dailyWageFromMonthly(monthlyWage) {
+  return (monthlyWage || 0) / DAYS_IN_MONTH;
+}
+
 // Build a payroll summary per worker for a given (already date-filtered) set of records and deductions.
 export function buildPayrollSummaries(workers, records, deductions, schedule) {
   const byWorker = {};
   for (const w of workers) {
+    const monthlyWage = w.wage || 0;
     byWorker[w.id] = {
       workerId: w.id,
       name: w.name,
-      wage: w.wage || 0,
+      monthlyWage,
+      dailyWage: dailyWageFromMonthly(monthlyWage),
       fullDays: 0,
       halfDays: 0,
       offDaysWorked: 0,
@@ -31,7 +40,8 @@ export function buildPayrollSummaries(workers, records, deductions, schedule) {
       byWorker[r.workerId] = {
         workerId: r.workerId,
         name: r.workerName || "عامل سابق",
-        wage: 0,
+        monthlyWage: 0,
+        dailyWage: 0,
         fullDays: 0,
         halfDays: 0,
         offDaysWorked: 0,
@@ -52,7 +62,8 @@ export function buildPayrollSummaries(workers, records, deductions, schedule) {
       byWorker[d.workerId] = {
         workerId: d.workerId,
         name: d.workerName || "عامل سابق",
-        wage: 0,
+        monthlyWage: 0,
+        dailyWage: 0,
         fullDays: 0,
         halfDays: 0,
         offDaysWorked: 0,
@@ -66,7 +77,8 @@ export function buildPayrollSummaries(workers, records, deductions, schedule) {
 
   for (const b of Object.values(byWorker)) {
     // off-days-worked are paid as full days (a bonus/overtime day)
-    b.gross = b.fullDays * b.wage + b.halfDays * (b.wage / 2) + b.offDaysWorked * b.wage;
+    b.gross =
+      b.fullDays * b.dailyWage + b.halfDays * (b.dailyWage / 2) + b.offDaysWorked * b.dailyWage;
     b.net = b.gross - b.deductionsTotal;
   }
 

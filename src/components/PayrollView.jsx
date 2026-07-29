@@ -2,6 +2,14 @@ import { useMemo, useState } from "react";
 import { buildPayrollSummaries } from "../lib/payroll";
 import { formatMonthLabel, formatDateLong, todayKey } from "../lib/format";
 
+function roundDaily(n) {
+  return Math.round((n || 0) * 10) / 10;
+}
+
+function money(n) {
+  return `${(n || 0).toLocaleString("en-US")} Kz`;
+}
+
 export default function PayrollView({
   workers,
   records,
@@ -102,14 +110,18 @@ export default function PayrollView({
             <div key={s.workerId} className="rounded-xl border border-line bg-white p-4">
               <div className="flex items-center justify-between">
                 <p className="text-base font-bold text-ink">{s.name}</p>
-                <span className="tabular text-lg font-black text-ink">
-                  {s.net.toLocaleString("ar-EG")}
-                </span>
+                <span className="tabular text-lg font-black text-ink">{money(s.net)}</span>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="rounded-lg bg-page px-3 py-2">
+                  <p className="text-out">المرتب الشهري</p>
+                  <p className="tabular mt-0.5 font-semibold text-ink">{money(s.monthlyWage)}</p>
+                </div>
+                <div className="rounded-lg bg-page px-3 py-2">
                   <p className="text-out">اليومية</p>
-                  <p className="tabular mt-0.5 font-semibold text-ink">{s.wage}</p>
+                  <p className="tabular mt-0.5 font-semibold text-ink">
+                    {roundDaily(s.dailyWage).toLocaleString("en-US")} Kz
+                  </p>
                 </div>
                 <div className="rounded-lg bg-page px-3 py-2">
                   <p className="text-out">أيام كاملة</p>
@@ -122,15 +134,13 @@ export default function PayrollView({
                   <p className="tabular mt-0.5 font-semibold text-ink">{s.halfDays}</p>
                 </div>
                 <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">الإجمالي</p>
-                  <p className="tabular mt-0.5 font-semibold text-ink">
-                    {s.gross.toLocaleString("ar-EG")}
-                  </p>
+                  <p className="text-out">الإجمالي المستحق</p>
+                  <p className="tabular mt-0.5 font-semibold text-ink">{money(s.gross)}</p>
                 </div>
-                <div className="col-span-2 rounded-lg bg-page px-3 py-2">
+                <div className="rounded-lg bg-page px-3 py-2">
                   <p className="text-out">الخصومات</p>
                   <p className="tabular mt-0.5 font-semibold text-red-600">
-                    {s.deductionsTotal > 0 ? `-${s.deductionsTotal.toLocaleString("ar-EG")}` : "—"}
+                    {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
                   </p>
                 </div>
               </div>
@@ -146,10 +156,11 @@ export default function PayrollView({
             <thead>
               <tr className="border-b border-line bg-page text-xs text-out">
                 <th className="px-3 py-2 font-semibold">العامل</th>
+                <th className="px-3 py-2 font-semibold">المرتب الشهري</th>
                 <th className="px-3 py-2 font-semibold">اليومية</th>
                 <th className="px-3 py-2 font-semibold">أيام كاملة</th>
                 <th className="px-3 py-2 font-semibold">نص أيام</th>
-                <th className="px-3 py-2 font-semibold">الإجمالي</th>
+                <th className="px-3 py-2 font-semibold">الإجمالي المستحق</th>
                 <th className="px-3 py-2 font-semibold">الخصومات</th>
                 <th className="px-3 py-2 font-semibold">الصافي</th>
               </tr>
@@ -158,14 +169,17 @@ export default function PayrollView({
               {summaries.map((s) => (
                 <tr key={s.workerId}>
                   <td className="px-3 py-2 font-semibold text-ink">{s.name}</td>
-                  <td className="px-3 py-2 text-ink-soft">{s.wage}</td>
+                  <td className="px-3 py-2 text-ink-soft">{money(s.monthlyWage)}</td>
+                  <td className="px-3 py-2 text-ink-soft">
+                    {roundDaily(s.dailyWage).toLocaleString("en-US")} Kz
+                  </td>
                   <td className="px-3 py-2 text-ink-soft">{s.fullDays + s.offDaysWorked}</td>
                   <td className="px-3 py-2 text-ink-soft">{s.halfDays}</td>
-                  <td className="px-3 py-2 text-ink-soft">{s.gross.toLocaleString("ar-EG")}</td>
+                  <td className="px-3 py-2 text-ink-soft">{money(s.gross)}</td>
                   <td className="px-3 py-2 text-red-600">
-                    {s.deductionsTotal > 0 ? `-${s.deductionsTotal.toLocaleString("ar-EG")}` : "—"}
+                    {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
                   </td>
-                  <td className="px-3 py-2 font-bold text-in">{s.net.toLocaleString("ar-EG")}</td>
+                  <td className="px-3 py-2 font-bold text-in">{money(s.net)}</td>
                 </tr>
               ))}
             </tbody>
@@ -201,7 +215,7 @@ export default function PayrollView({
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">المبلغ</label>
+            <label className="text-[11px] text-out">المبلغ (Kz)</label>
             <input
               type="number"
               value={formAmount}
@@ -271,7 +285,7 @@ export default function PayrollView({
                         title="دوس تعدل المبلغ"
                         className="tabular font-bold text-red-600 hover:underline"
                       >
-                        -{d.amount}
+                        -{money(d.amount)}
                       </button>
                     )}
                     <button

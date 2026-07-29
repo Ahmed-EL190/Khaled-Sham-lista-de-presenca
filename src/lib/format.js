@@ -8,7 +8,7 @@ export function todayKey(date = new Date()) {
 export function formatTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  return d.toLocaleTimeString("ar-EG", {
+  return d.toLocaleTimeString("ar-EG-u-nu-latn", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
@@ -18,13 +18,13 @@ export function formatTime(iso) {
 export function formatMonthLabel(monthKey) {
   const [y, m] = monthKey.split("-").map(Number);
   const date = new Date(y, m - 1, 1);
-  return date.toLocaleDateString("ar-EG", { year: "numeric", month: "long" });
+  return date.toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long" });
 }
 
 export function formatDateLong(dateKey) {
   const [y, m, d] = dateKey.split("-").map(Number);
   const date = new Date(y, m - 1, d);
-  return date.toLocaleDateString("ar-EG", {
+  return date.toLocaleDateString("ar-EG-u-nu-latn", {
     weekday: "long",
     year: "numeric",
     month: "long",
