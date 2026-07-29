@@ -304,7 +304,13 @@ export default function App() {
           </div>
         )}
 
-        {tab === "history" && <HistoryView records={allRecords} todayKey={today} />}
+        {tab === "history" && (
+          <HistoryView
+            records={allRecords}
+            todayKey={today}
+            onDelete={({ dateKey, workerId }) => deleteRecord({ dateKey, workerId })}
+          />
+        )}
 
         {tab === "reports" && (
           <ReportsView

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { formatDateLong, formatDuration, formatTime } from "../lib/format";
 
-export default function HistoryView({ records, todayKey }) {
+export default function HistoryView({ records, todayKey, onDelete }) {
   const byDate = useMemo(() => {
     const map = {};
     for (const r of records) {
@@ -21,6 +21,14 @@ export default function HistoryView({ records, todayKey }) {
         لسه مفيش أيام سابقة متسجلة
       </div>
     );
+  }
+
+  function handleDelete(e, dateKey, workerId, workerName) {
+    e.stopPropagation();
+    if (!onDelete) return;
+    if (window.confirm(`متأكد إنك عايز تمسح تسجيل ${workerName}؟`)) {
+      onDelete({ dateKey, workerId });
+    }
   }
 
   return (
@@ -66,6 +74,15 @@ export default function HistoryView({ records, todayKey }) {
                       <span className="rounded-full bg-page px-2 py-0.5 text-xs font-medium text-ink-soft">
                         {formatDuration(e.checkIn, e.checkOut)}
                       </span>
+                      {onDelete && (
+                        <button
+                          onClick={(ev) => handleDelete(ev, dateKey, e.workerId, e.workerName)}
+                          title="حذف التسجيل"
+                          className="rounded-md px-1.5 py-1 text-out transition hover:bg-red-50 hover:text-red-600"
+                        >
+                          🗑
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
