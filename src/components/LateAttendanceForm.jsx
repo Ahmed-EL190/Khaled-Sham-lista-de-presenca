@@ -1,15 +1,9 @@
 import { useState } from "react";
 import { todayKey } from "../lib/format";
 
-function yesterdayKey() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return todayKey(d);
-}
-
 export default function LateAttendanceForm({ workers, onSubmit }) {
   const [workerId, setWorkerId] = useState("");
-  const [date, setDate] = useState(yesterdayKey());
+  const [date, setDate] = useState(todayKey());
   const [checkInTime, setCheckInTime] = useState("08:00");
   const [checkOutTime, setCheckOutTime] = useState("");
   const [done, setDone] = useState(false);
@@ -40,9 +34,9 @@ export default function LateAttendanceForm({ workers, onSubmit }) {
 
   return (
     <div className="mx-auto max-w-md rounded-xl border border-line bg-white p-5">
-      <h3 className="text-sm font-bold text-ink">تسجيل حضور متأخر (يوم فات)</h3>
+      <h3 className="text-sm font-bold text-ink">تسجيل حضور متأخر</h3>
       <p className="mt-0.5 text-xs text-out">
-        لو نسيت تسجل عامل في يوم فات، سجله من هنا. لو فيه تسجيل للعامل ده في نفس اليوم، هيتستبدل بالبيانات الجديدة.
+        لو نسيت تسجل عامل — سواء النهاردة أو في يوم فات — سجله من هنا بساعة الحضور الصح. لو فيه تسجيل للعامل ده في نفس اليوم، هيتستبدل بالبيانات الجديدة.
       </p>
 
       <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
@@ -67,7 +61,7 @@ export default function LateAttendanceForm({ workers, onSubmit }) {
           <input
             type="date"
             value={date}
-            max={yesterdayKey()}
+            max={todayKey()}
             onChange={(e) => setDate(e.target.value)}
             className="tabular rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
           />
