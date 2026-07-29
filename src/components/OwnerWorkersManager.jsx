@@ -252,19 +252,19 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
             <li className="py-3 text-center text-xs text-out">لسه مفيش عمال مضافين</li>
           )}
           {workers.map((w) => (
-            <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+            <li key={w.id} className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-medium text-ink">{w.name}</p>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   onClick={() => editWage(w)}
                   title="دوس تعدل المرتب الإجمالي الشهري"
                   className="tabular rounded-full bg-page px-2.5 py-1 text-xs font-semibold text-steel hover:bg-mist"
                 >
                   {(w.wage || 0).toLocaleString("en-US")} Kz/شهر
-                  <span className="mr-1 text-out">
-                    (≈ {dailyFromMonthly(w.wage).toLocaleString("en-US")} Kz/يوم)
-                  </span>
                 </button>
+                <span className="text-[11px] text-out">
+                  ≈ {dailyFromMonthly(w.wage).toLocaleString("en-US")} Kz/يوم
+                </span>
                 <button
                   onClick={() => onRemove(w.id)}
                   title="بيوقف عن الظهور في اليوم، وسجلاته القديمة تفضل موجودة"

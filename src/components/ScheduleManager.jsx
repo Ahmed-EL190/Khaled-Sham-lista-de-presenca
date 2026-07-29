@@ -42,9 +42,12 @@ export default function ScheduleManager({ schedule, onChange }) {
         {DAYS.map((day) => {
           const current = stateOf(day.i);
           return (
-            <div key={day.i} className="flex items-center justify-between py-2">
+            <div
+              key={day.i}
+              className="flex flex-col gap-1.5 py-2 xs:flex-row xs:items-center xs:justify-between"
+            >
               <span className="text-sm font-medium text-ink">{day.label}</span>
-              <div className="inline-flex rounded-lg border border-line bg-page p-0.5">
+              <div className="inline-flex w-fit flex-wrap rounded-lg border border-line bg-page p-0.5">
                 {STATES.map((s) => (
                   <button
                     key={s.key}
