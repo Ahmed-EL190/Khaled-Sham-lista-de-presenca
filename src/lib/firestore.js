@@ -146,22 +146,58 @@ export function addDeduction({ workerId, workerName, siteId, siteName, dateKey, 
   });
 }
 
+export function updateDeduction(id, patch) {
+  return setDoc(doc(db, "deductions", id), patch, { merge: true });
+}
+
 export function removeDeduction(id) {
   return deleteDoc(doc(db, "deductions", id));
+}
+
+// ---------- Expenses (مصروفات/سلف العمال) ----------
+// بتتسجل من الورشة العادية زي الخصومات بالظبط، وبتظهر في تقارير الورشة والإدارة.
+export function subscribeExpenses(siteId, cb) {
+  const base = collection(db, "expenses");
+  const q = siteId ? query(base, where("siteId", "==", siteId)) : base;
+  return onSnapshot(q, (snap) => cb(docsFromSnap(snap)));
+}
+
+export function addExpense({ workerId, workerName, siteId, siteName, dateKey, amount, reason }) {
+  return addDoc(collection(db, "expenses"), {
+    workerId,
+    workerName,
+    siteId: siteId || null,
+    siteName: siteName || null,
+    dateKey,
+    amount: Number(amount) || 0,
+    reason: reason || "",
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export function updateExpense(id, patch) {
+  return setDoc(doc(db, "expenses", id), patch, { merge: true });
+}
+
+export function removeExpense(id) {
+  return deleteDoc(doc(db, "expenses", id));
 }
 
 // ---------- Purge (delete worker + ALL their history everywhere) ----------
 export async function purgeWorker(workerId) {
   const recordsQ = query(collection(db, "records"), where("workerId", "==", workerId));
   const deductionsQ = query(collection(db, "deductions"), where("workerId", "==", workerId));
-  const [recordsSnap, deductionsSnap] = await Promise.all([
+  const expensesQ = query(collection(db, "expenses"), where("workerId", "==", workerId));
+  const [recordsSnap, deductionsSnap, expensesSnap] = await Promise.all([
     getDocs(recordsQ),
     getDocs(deductionsQ),
+    getDocs(expensesQ),
   ]);
 
   const batch = writeBatch(db);
   recordsSnap.docs.forEach((d) => batch.delete(d.ref));
   deductionsSnap.docs.forEach((d) => batch.delete(d.ref));
+  expensesSnap.docs.forEach((d) => batch.delete(d.ref));
   batch.delete(doc(db, "workers", workerId));
 
   await batch.commit();

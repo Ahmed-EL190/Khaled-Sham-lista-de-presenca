@@ -14,6 +14,7 @@ export default function PayrollView({
   workers,
   records,
   deductions,
+  expenses,
   schedule,
   onAddDeduction,
   onRemoveDeduction,
@@ -38,10 +39,11 @@ export default function PayrollView({
     const set = new Set([
       ...records.map((r) => r.dateKey?.slice(0, 7)),
       ...deductions.map((d) => d.dateKey?.slice(0, 7)),
+      ...expenses.map((e) => e.dateKey?.slice(0, 7)),
     ].filter(Boolean));
     set.add(todayKey().slice(0, 7));
     return Array.from(set).sort().reverse();
-  }, [records, deductions]);
+  }, [records, deductions, expenses]);
 
   const [selectedMonth, setSelectedMonth] = useState(todayKey().slice(0, 7));
 
@@ -53,10 +55,14 @@ export default function PayrollView({
     () => deductions.filter((d) => d.dateKey?.startsWith(selectedMonth)),
     [deductions, selectedMonth]
   );
+  const filteredExpenses = useMemo(
+    () => expenses.filter((e) => e.dateKey?.startsWith(selectedMonth)),
+    [expenses, selectedMonth]
+  );
 
   const summaries = useMemo(
-    () => buildPayrollSummaries(workers, filteredRecords, filteredDeductions, schedule),
-    [workers, filteredRecords, filteredDeductions, schedule]
+    () => buildPayrollSummaries(workers, filteredRecords, filteredDeductions, filteredExpenses, schedule),
+    [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule]
   );
 
   // ---- add deduction form ----
@@ -143,6 +149,12 @@ export default function PayrollView({
                     {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
                   </p>
                 </div>
+                <div className="rounded-lg bg-page px-3 py-2">
+                  <p className="text-out">المصروفات/السلف</p>
+                  <p className="tabular mt-0.5 font-semibold text-orange-600">
+                    {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
+                  </p>
+                </div>
               </div>
             </div>
           ))}
@@ -162,6 +174,7 @@ export default function PayrollView({
                 <th className="px-3 py-2 font-semibold">نص أيام</th>
                 <th className="px-3 py-2 font-semibold">الإجمالي المستحق</th>
                 <th className="px-3 py-2 font-semibold">الخصومات</th>
+                <th className="px-3 py-2 font-semibold">المصروفات/السلف</th>
                 <th className="px-3 py-2 font-semibold">الصافي</th>
               </tr>
             </thead>
@@ -178,6 +191,9 @@ export default function PayrollView({
                   <td className="px-3 py-2 text-ink-soft">{money(s.gross)}</td>
                   <td className="px-3 py-2 text-red-600">
                     {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-orange-600">
+                    {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
                   </td>
                   <td className="px-3 py-2 font-bold text-in">{money(s.net)}</td>
                 </tr>

@@ -9,6 +9,7 @@ import HistoryView from "./components/HistoryView";
 import ReportsView from "./components/ReportsView";
 import PayrollView from "./components/PayrollView";
 import DeductionForm from "./components/DeductionForm";
+import ExpenseForm from "./components/ExpenseForm";
 import LateAttendanceForm from "./components/LateAttendanceForm";
 import SitePickerModal from "./components/SitePickerModal";
 import { todayKey } from "./lib/format";
@@ -32,6 +33,11 @@ import {
   subscribeDeductions,
   addDeduction,
   removeDeduction,
+  updateDeduction,
+  subscribeExpenses,
+  addExpense,
+  removeExpense,
+  updateExpense,
   addLateRecord,
 } from "./lib/firestore";
 
@@ -41,6 +47,7 @@ const FOREMAN_TABS = [
   { id: "reports", label: "التقارير" },
   { id: "late", label: "تسجيل متأخر" },
   { id: "deduction", label: "تسجيل خصم" },
+  { id: "expense", label: "تسجيل مصروف" },
 ];
 
 const OWNER_TABS = [
@@ -59,6 +66,7 @@ export default function App() {
   const [allRecords, setAllRecords] = useState([]);
   const [schedule, setSchedule] = useState({ offDays: [0], halfDays: [6] });
   const [deductions, setDeductions] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [tab, setTab] = useState("today");
   const [search, setSearch] = useState("");
   const [pendingWorkerId, setPendingWorkerId] = useState(null);
@@ -83,12 +91,14 @@ export default function App() {
     const unsubWorkers = subscribeWorkers(setWorkers);
     const unsubToday = subscribeRecordsForDate(today, setTodayRecords);
     const unsubAll = subscribeAllRecords(scopeSiteId, setAllRecords);
-    const unsubDeductions = isOwner ? subscribeDeductions(null, setDeductions) : () => {};
+    const unsubDeductions = subscribeDeductions(scopeSiteId, setDeductions);
+    const unsubExpenses = subscribeExpenses(scopeSiteId, setExpenses);
     return () => {
       unsubWorkers();
       unsubToday();
       unsubAll();
       unsubDeductions();
+      unsubExpenses();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, scopeSiteId, today, isOwner]);
@@ -320,8 +330,12 @@ export default function App() {
             workers={workers}
             sites={isOwner ? sites : [{ id: session.siteId, name: session.siteName }]}
             records={allRecords}
+            deductions={deductions}
+            expenses={expenses}
             canPurge={isOwner}
             onPurgeWorker={purgeWorker}
+            onRemoveDeduction={removeDeduction}
+            onRemoveExpense={removeExpense}
           />
         )}
 
@@ -330,6 +344,7 @@ export default function App() {
             workers={workers}
             records={allRecords}
             deductions={deductions}
+            expenses={expenses}
             schedule={schedule}
             onAddDeduction={(d) =>
               addDeduction({
@@ -339,6 +354,7 @@ export default function App() {
               })
             }
             onRemoveDeduction={removeDeduction}
+            onUpdateDeduction={updateDeduction}
           />
         )}
 
@@ -358,6 +374,7 @@ export default function App() {
         {tab === "deduction" && !isOwner && (
           <DeductionForm
             workers={workers}
+            deductions={deductions}
             onSubmit={(d) =>
               addDeduction({
                 ...d,
@@ -365,6 +382,24 @@ export default function App() {
                 siteName: session.siteName,
               })
             }
+            onRemoveDeduction={removeDeduction}
+            onUpdateDeduction={updateDeduction}
+          />
+        )}
+
+        {tab === "expense" && !isOwner && (
+          <ExpenseForm
+            workers={workers}
+            expenses={expenses}
+            onSubmit={(e) =>
+              addExpense({
+                ...e,
+                siteId: session.siteId,
+                siteName: session.siteName,
+              })
+            }
+            onRemoveExpense={removeExpense}
+            onUpdateExpense={updateExpense}
           />
         )}
 

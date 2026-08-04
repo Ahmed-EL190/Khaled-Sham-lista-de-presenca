@@ -15,8 +15,9 @@ export function dailyWageFromMonthly(monthlyWage) {
   return (monthlyWage || 0) / DAYS_IN_MONTH;
 }
 
-// Build a payroll summary per worker for a given (already date-filtered) set of records and deductions.
-export function buildPayrollSummaries(workers, records, deductions, schedule) {
+// Build a payroll summary per worker for a given (already date-filtered) set of records,
+// deductions, and expenses (advances the worker already took — both reduce net pay).
+export function buildPayrollSummaries(workers, records, deductions, expenses, schedule) {
   const byWorker = {};
   for (const w of workers) {
     const monthlyWage = w.wage || 0;
@@ -30,6 +31,7 @@ export function buildPayrollSummaries(workers, records, deductions, schedule) {
       offDaysWorked: 0,
       gross: 0,
       deductionsTotal: 0,
+      expensesTotal: 0,
       net: 0,
     };
   }
@@ -47,6 +49,7 @@ export function buildPayrollSummaries(workers, records, deductions, schedule) {
         offDaysWorked: 0,
         gross: 0,
         deductionsTotal: 0,
+        expensesTotal: 0,
         net: 0,
       };
     }
@@ -69,17 +72,37 @@ export function buildPayrollSummaries(workers, records, deductions, schedule) {
         offDaysWorked: 0,
         gross: 0,
         deductionsTotal: 0,
+        expensesTotal: 0,
         net: 0,
       };
     }
     byWorker[d.workerId].deductionsTotal += d.amount || 0;
   }
 
+  for (const e of expenses) {
+    if (!byWorker[e.workerId]) {
+      byWorker[e.workerId] = {
+        workerId: e.workerId,
+        name: e.workerName || "عامل سابق",
+        monthlyWage: 0,
+        dailyWage: 0,
+        fullDays: 0,
+        halfDays: 0,
+        offDaysWorked: 0,
+        gross: 0,
+        deductionsTotal: 0,
+        expensesTotal: 0,
+        net: 0,
+      };
+    }
+    byWorker[e.workerId].expensesTotal += e.amount || 0;
+  }
+
   for (const b of Object.values(byWorker)) {
     // off-days-worked are paid as full days (a bonus/overtime day)
     b.gross =
       b.fullDays * b.dailyWage + b.halfDays * (b.dailyWage / 2) + b.offDaysWorked * b.dailyWage;
-    b.net = b.gross - b.deductionsTotal;
+    b.net = b.gross - b.deductionsTotal - b.expensesTotal;
   }
 
   return Object.values(byWorker).sort((a, b) => b.net - a.net);

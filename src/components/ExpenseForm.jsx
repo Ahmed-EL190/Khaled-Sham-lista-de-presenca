@@ -5,7 +5,7 @@ function money(n) {
   return `${(n || 0).toLocaleString("en-US")} Kz`;
 }
 
-export default function DeductionForm({ workers, deductions = [], onSubmit, onRemoveDeduction, onUpdateDeduction }) {
+export default function ExpenseForm({ workers, expenses = [], onSubmit, onRemoveExpense, onUpdateExpense }) {
   const [workerId, setWorkerId] = useState("");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
@@ -34,28 +34,28 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
     setTimeout(() => setDone(false), 2500);
   }
 
-  function startEdit(d) {
-    setEditingId(d.id);
-    setEditAmount(d.amount);
+  function startEdit(item) {
+    setEditingId(item.id);
+    setEditAmount(item.amount);
   }
 
-  function saveEdit(d) {
+  function saveEdit(item) {
     const num = Number(editAmount);
-    if (!Number.isNaN(num) && num !== Number(d.amount) && onUpdateDeduction) {
-      onUpdateDeduction(d.id, { amount: num });
+    if (!Number.isNaN(num) && num !== Number(item.amount) && onUpdateExpense) {
+      onUpdateExpense(item.id, { amount: num });
     }
     setEditingId(null);
   }
 
-  const sortedDeductions = useMemo(
-    () => deductions.slice().sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1)),
-    [deductions]
+  const sortedExpenses = useMemo(
+    () => expenses.slice().sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1)),
+    [expenses]
   );
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4">
       <div className="rounded-xl border border-line bg-white p-5">
-        <h3 className="text-sm font-bold text-ink">تسجيل خصم على عامل</h3>
+        <h3 className="text-sm font-bold text-ink">تسجيل مصروف / سلفة لعامل</h3>
 
         <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
           <div className="flex flex-col gap-1">
@@ -100,7 +100,7 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
             <input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="مثلاً: تأخير"
+              placeholder="مثلاً: سلفة"
               className="rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
             />
           </div>
@@ -110,27 +110,27 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
             disabled={!workerId || !amount}
             className="rounded-lg bg-ink py-2.5 text-sm font-bold text-white transition hover:bg-ink-soft disabled:opacity-40"
           >
-            تسجيل الخصم
+            تسجيل المصروف
           </button>
 
-          {done && <p className="text-center text-xs font-semibold text-in">تم تسجيل الخصم ✓</p>}
+          {done && <p className="text-center text-xs font-semibold text-in">تم تسجيل المصروف ✓</p>}
         </form>
       </div>
 
-      {sortedDeductions.length > 0 && (
+      {sortedExpenses.length > 0 && (
         <div className="rounded-xl border border-line bg-white p-5">
-          <h3 className="text-sm font-bold text-ink">الخصومات المسجلة</h3>
+          <h3 className="text-sm font-bold text-ink">المصروفات المسجلة</h3>
           <ul className="mt-2 flex flex-col divide-y divide-line">
-            {sortedDeductions.map((d) => (
-              <li key={d.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+            {sortedExpenses.map((item) => (
+              <li key={item.id} className="flex items-center justify-between gap-2 py-2 text-sm">
                 <div>
                   <p className="font-medium text-ink">
-                    {d.workerName} <span className="text-out">— {formatDateLong(d.dateKey)}</span>
+                    {item.workerName} <span className="text-out">— {formatDateLong(item.dateKey)}</span>
                   </p>
-                  {d.reason && <p className="text-xs text-out">{d.reason}</p>}
+                  {item.reason && <p className="text-xs text-out">{item.reason}</p>}
                 </div>
                 <div className="flex items-center gap-2">
-                  {editingId === d.id ? (
+                  {editingId === item.id ? (
                     <>
                       <input
                         autoFocus
@@ -138,13 +138,13 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
                         value={editAmount}
                         onChange={(e) => setEditAmount(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") saveEdit(d);
+                          if (e.key === "Enter") saveEdit(item);
                           if (e.key === "Escape") setEditingId(null);
                         }}
                         className="tabular w-20 rounded-lg border border-steel bg-white px-2 py-1 text-sm text-ink outline-none"
                       />
                       <button
-                        onClick={() => saveEdit(d)}
+                        onClick={() => saveEdit(item)}
                         className="rounded-md px-2 py-1 text-xs font-semibold text-in hover:bg-page"
                       >
                         حفظ
@@ -152,17 +152,17 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
                     </>
                   ) : (
                     <button
-                      onClick={() => startEdit(d)}
-                      disabled={!onUpdateDeduction}
+                      onClick={() => startEdit(item)}
+                      disabled={!onUpdateExpense}
                       title="دوس تعدل المبلغ"
-                      className="tabular font-bold text-red-600 hover:underline disabled:no-underline"
+                      className="tabular font-bold text-orange-600 hover:underline disabled:no-underline"
                     >
-                      -{money(d.amount)}
+                      -{money(item.amount)}
                     </button>
                   )}
-                  {onRemoveDeduction && (
+                  {onRemoveExpense && (
                     <button
-                      onClick={() => onRemoveDeduction(d.id)}
+                      onClick={() => onRemoveExpense(item.id)}
                       className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
                     >
                       حذف
