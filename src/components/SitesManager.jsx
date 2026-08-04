@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function SitesManager({ sites, onAdd, onRemove }) {
+export default function SitesManager({ sites, onAdd, onRemove, onUpdate }) {
   const [name, setName] = useState("");
   const [pinInput, setPinInput] = useState("");
 
@@ -12,6 +12,22 @@ export default function SitesManager({ sites, onAdd, onRemove }) {
     onAdd(cleanName, cleanPin);
     setName("");
     setPinInput("");
+  }
+
+  function editName(site) {
+    const value = window.prompt("اسم الورشة؟", site.name || "");
+    if (value === null) return;
+    const cleanValue = value.trim();
+    if (!cleanValue || cleanValue === site.name) return;
+    onUpdate(site.id, { name: cleanValue });
+  }
+
+  function editPin(site) {
+    const value = window.prompt(`كود الدخول بتاع ${site.name}؟`, site.pin || "");
+    if (value === null) return;
+    const cleanValue = value.trim();
+    if (!cleanValue || cleanValue === site.pin) return;
+    onUpdate(site.id, { pin: cleanValue });
   }
 
   return (
@@ -47,16 +63,28 @@ export default function SitesManager({ sites, onAdd, onRemove }) {
         )}
         {sites.map((site) => (
           <li key={site.id} className="flex items-center justify-between py-2">
-            <div>
-              <p className="text-sm font-medium text-ink">{site.name}</p>
-              <p className="tabular text-xs text-steel">كود: {site.pin}</p>
-            </div>
             <button
-              onClick={() => onRemove(site.id)}
-              className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
+              onClick={() => editName(site)}
+              title="دوس تعدل اسم الورشة"
+              className="text-right text-sm font-medium text-ink hover:underline"
             >
-              حذف
+              {site.name}
             </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => editPin(site)}
+                title="دوس تعدل كود الدخول"
+                className="tabular rounded-full bg-page px-2.5 py-1 text-xs font-semibold text-steel hover:bg-mist"
+              >
+                كود: {site.pin}
+              </button>
+              <button
+                onClick={() => onRemove(site.id)}
+                className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
+              >
+                حذف
+              </button>
+            </div>
           </li>
         ))}
       </ul>

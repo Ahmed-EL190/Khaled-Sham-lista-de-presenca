@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Login from "./components/Login";
+import DashboardView from "./components/DashboardView";
 import WorkerCard from "./components/WorkerCard";
 import OwnerWorkersManager from "./components/OwnerWorkersManager";
 import SitesManager from "./components/SitesManager";
@@ -16,6 +17,7 @@ import { todayKey } from "./lib/format";
 import {
   subscribeSites,
   addSite,
+  updateSite,
   removeSite,
   subscribeWorkers,
   addWorker,
@@ -51,6 +53,7 @@ const FOREMAN_TABS = [
 ];
 
 const OWNER_TABS = [
+  { id: "dashboard", label: "الرئيسية" },
   { id: "today", label: "اليوم" },
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
@@ -121,7 +124,7 @@ export default function App() {
 
   function handleLogin(newSession) {
     setSession(newSession);
-    setTab("today");
+    setTab(newSession.role === "owner" ? "dashboard" : "today");
     setSearch("");
   }
 
@@ -225,6 +228,20 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        {tab === "dashboard" && isOwner && (
+          <DashboardView
+            workers={workers}
+            sites={sites}
+            todayRecords={todayRecords}
+            allRecords={allRecords}
+            deductions={deductions}
+            expenses={expenses}
+            schedule={schedule}
+            onGoToToday={() => setTab("today")}
+            onGoToPayroll={() => setTab("payroll")}
+          />
+        )}
 
         {tab === "today" && !isOwner && (
           <>
@@ -410,6 +427,7 @@ export default function App() {
                 sites={sites}
                 onAdd={(name, pin) => addSite({ name, pin })}
                 onRemove={removeSite}
+                onUpdate={updateSite}
               />
               <ScheduleManager schedule={schedule} onChange={saveSchedule} />
             </div>

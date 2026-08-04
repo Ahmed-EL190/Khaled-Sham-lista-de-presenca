@@ -25,6 +25,10 @@ export function addSite({ name, pin }) {
   return addDoc(collection(db, "sites"), { name, pin });
 }
 
+export function updateSite(id, patch) {
+  return setDoc(doc(db, "sites", id), patch, { merge: true });
+}
+
 export function removeSite(id) {
   return deleteDoc(doc(db, "sites", id));
 }

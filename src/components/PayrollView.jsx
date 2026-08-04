@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { buildPayrollSummaries } from "../lib/payroll";
 import { formatMonthLabel, formatDateLong, todayKey } from "../lib/format";
+import PayslipModal from "./PayslipModal";
 
 function roundDaily(n) {
   return Math.round((n || 0) * 10) / 10;
@@ -64,6 +65,18 @@ export default function PayrollView({
     () => buildPayrollSummaries(workers, filteredRecords, filteredDeductions, filteredExpenses, schedule),
     [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule]
   );
+
+  // ---- payslip modal ----
+  const [payslipWorkerId, setPayslipWorkerId] = useState(null);
+  const payslipSummary = summaries.find((s) => s.workerId === payslipWorkerId) || null;
+  const payslipDeductions = filteredDeductions
+    .filter((d) => d.workerId === payslipWorkerId)
+    .slice()
+    .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
+  const payslipExpenses = filteredExpenses
+    .filter((e) => e.workerId === payslipWorkerId)
+    .slice()
+    .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
 
   // ---- add deduction form ----
   const [formWorkerId, setFormWorkerId] = useState(workers[0]?.id || "");
@@ -156,6 +169,12 @@ export default function PayrollView({
                   </p>
                 </div>
               </div>
+              <button
+                onClick={() => setPayslipWorkerId(s.workerId)}
+                className="mt-3 w-full rounded-lg border border-line py-2 text-xs font-semibold text-steel hover:bg-mist"
+              >
+                كشف / PDF
+              </button>
             </div>
           ))}
         </div>
@@ -176,6 +195,7 @@ export default function PayrollView({
                 <th className="px-3 py-2 font-semibold">الخصومات</th>
                 <th className="px-3 py-2 font-semibold">المصروفات/السلف</th>
                 <th className="px-3 py-2 font-semibold">الصافي</th>
+                <th className="px-3 py-2 font-semibold"></th>
               </tr>
             </thead>
             <tbody className="tabular divide-y divide-line">
@@ -196,6 +216,14 @@ export default function PayrollView({
                     {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
                   </td>
                   <td className="px-3 py-2 font-bold text-in">{money(s.net)}</td>
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => setPayslipWorkerId(s.workerId)}
+                      className="rounded-md border border-line px-2.5 py-1 text-xs font-semibold text-steel hover:bg-mist"
+                    >
+                      كشف / PDF
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -315,6 +343,16 @@ export default function PayrollView({
               ))}
           </ul>
         </div>
+      )}
+
+      {payslipSummary && (
+        <PayslipModal
+          summary={payslipSummary}
+          monthLabel={formatMonthLabel(selectedMonth)}
+          deductions={payslipDeductions}
+          expenses={payslipExpenses}
+          onClose={() => setPayslipWorkerId(null)}
+        />
       )}
     </div>
   );
