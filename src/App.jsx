@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "./components/Header";
+import OfflineBanner from "./components/OfflineBanner";
 import Login from "./components/Login";
 import DashboardView from "./components/DashboardView";
 import WorkerCard from "./components/WorkerCard";
@@ -183,7 +184,12 @@ export default function App() {
   }
 
   if (!session) {
-    return <Login sites={sites} onLogin={handleLogin} />;
+    return (
+      <>
+        <OfflineBanner />
+        <Login sites={sites} onLogin={handleLogin} />
+      </>
+    );
   }
 
   const tabs = isOwner ? OWNER_TABS : FOREMAN_TABS;
@@ -203,6 +209,7 @@ export default function App() {
         siteLabel={siteLabel}
         onLogout={handleLogout}
       />
+      <OfflineBanner />
 
       {pendingWorkerId && (
         <SitePickerModal
