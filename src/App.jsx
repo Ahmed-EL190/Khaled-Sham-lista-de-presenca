@@ -15,6 +15,7 @@ import ExpenseForm from "./components/ExpenseForm";
 import LateAttendanceForm from "./components/LateAttendanceForm";
 import SitePickerModal from "./components/SitePickerModal";
 import { todayKey } from "./lib/format";
+import { authReady } from "./firebase";
 import {
   subscribeSites,
   addSite,
@@ -63,6 +64,7 @@ const OWNER_TABS = [
 ];
 
 export default function App() {
+  const [authed, setAuthed] = useState(false);
   const [session, setSession] = useState(null);
   const [sites, setSites] = useState([]);
   const [workers, setWorkers] = useState([]);
@@ -81,17 +83,23 @@ export default function App() {
   const searchTerm = search.trim();
 
   useEffect(() => {
+    authReady.then(() => setAuthed(true));
+  }, []);
+
+  useEffect(() => {
+    if (!authed) return;
     const unsub = subscribeSites(setSites);
     return unsub;
-  }, []);
+  }, [authed]);
 
   useEffect(() => {
+    if (!authed) return;
     const unsub = subscribeSchedule(setSchedule);
     return unsub;
-  }, []);
+  }, [authed]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!authed || !session) return;
     const unsubWorkers = subscribeWorkers(setWorkers);
     const unsubToday = subscribeRecordsForDate(today, setTodayRecords);
     const unsubAll = subscribeAllRecords(scopeSiteId, setAllRecords);
@@ -105,7 +113,7 @@ export default function App() {
       unsubExpenses();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, scopeSiteId, today, isOwner]);
+  }, [authed, session, scopeSiteId, today, isOwner]);
 
   const todayByWorker = useMemo(() => {
     const map = {};
@@ -181,6 +189,14 @@ export default function App() {
     } else {
       deleteRecord({ dateKey: today, workerId });
     }
+  }
+
+  if (!authed) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-out">
+        بيتم التحميل...
+      </div>
+    );
   }
 
   if (!session) {
