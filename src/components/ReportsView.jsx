@@ -1,3 +1,4 @@
+import WorkerPicker from "./WorkerPicker";
 import { useMemo, useState } from "react";
 import { buildSiteDailyReports, buildWorkerSummaries } from "../lib/reports";
 import { formatMonthLabel, formatDateLong, formatDuration, formatTime, todayKey } from "../lib/format";
@@ -172,18 +173,15 @@ export default function ReportsView({
 
         <div className="flex flex-wrap items-center gap-2">
           {mode === "worker" && (
-            <select
-              value={selectedWorkerId}
-              onChange={(e) => setSelectedWorkerId(e.target.value)}
-              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-ink outline-none focus:border-steel"
-            >
-              <option value="all">كل العمال</option>
-              {workerOptions.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
+            <div className="w-48">
+              <WorkerPicker
+                workers={workerOptions}
+                value={selectedWorkerId}
+                onChange={setSelectedWorkerId}
+                allowAll
+                allLabel="كل العمال"
+              />
+            </div>
           )}
 
           <select

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { formatDateLong, todayKey } from "../lib/format";
+import WorkerPicker from "./WorkerPicker";
 
 function money(n) {
   return `${(n || 0).toLocaleString("en-US")} Kz`;
@@ -60,18 +61,7 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
         <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-[11px] text-out">العامل</label>
-            <select
-              value={workerId}
-              onChange={(e) => setWorkerId(e.target.value)}
-              className="rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            >
-              <option value="">اختار العامل</option>
-              {workers.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
+            <WorkerPicker workers={workers} value={workerId} onChange={setWorkerId} />
           </div>
 
           <div className="flex flex-col gap-1">
