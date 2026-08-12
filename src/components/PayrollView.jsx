@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { buildPayrollSummaries } from "../lib/payroll";
 import { formatMonthLabel, formatDateLong, todayKey } from "../lib/format";
 import PayslipModal from "./PayslipModal";
+import PayrollAllSlipModal from "./PayrollAllSlipModal";
 
 function roundDaily(n) {
   return Math.round((n || 0) * 10) / 10;
@@ -66,7 +67,7 @@ export default function PayrollView({
     [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule]
   );
 
-  // ---- payslip modal ----
+  // ---- single payslip modal ----
   const [payslipWorkerId, setPayslipWorkerId] = useState(null);
   const payslipSummary = summaries.find((s) => s.workerId === payslipWorkerId) || null;
   const payslipDeductions = filteredDeductions
@@ -77,6 +78,9 @@ export default function PayrollView({
     .filter((e) => e.workerId === payslipWorkerId)
     .slice()
     .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
+
+  // ---- all-workers payslip modal ----
+  const [showAllSlip, setShowAllSlip] = useState(false);
 
   // ---- add deduction form ----
   const [formWorkerId, setFormWorkerId] = useState(workers[0]?.id || "");
@@ -101,19 +105,29 @@ export default function PayrollView({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-ink">مرتبات الشهر</h3>
-        <select
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-ink outline-none focus:border-steel"
-        >
-          {monthKeys.map((m) => (
-            <option key={m} value={m}>
-              {formatMonthLabel(m)}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          {summaries.length > 0 && (
+            <button
+              onClick={() => setShowAllSlip(true)}
+              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-steel hover:bg-mist"
+            >
+              كشف كل العمال / PDF
+            </button>
+          )}
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-ink outline-none focus:border-steel"
+          >
+            {monthKeys.map((m) => (
+              <option key={m} value={m}>
+                {formatMonthLabel(m)}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {summaries.length === 0 && (
@@ -168,6 +182,14 @@ export default function PayrollView({
                     {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
                   </p>
                 </div>
+                {s.hasInss && (
+                  <div className="rounded-lg bg-page px-3 py-2">
+                    <p className="text-out">الضمان الاجتماعي (3%)</p>
+                    <p className="tabular mt-0.5 font-semibold text-purple-600">
+                      -{money(s.inss)}
+                    </p>
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => setPayslipWorkerId(s.workerId)}
@@ -194,6 +216,7 @@ export default function PayrollView({
                 <th className="px-3 py-2 font-semibold">الإجمالي المستحق</th>
                 <th className="px-3 py-2 font-semibold">الخصومات</th>
                 <th className="px-3 py-2 font-semibold">المصروفات/السلف</th>
+                <th className="px-3 py-2 font-semibold">الضمان الاجتماعي</th>
                 <th className="px-3 py-2 font-semibold">الصافي</th>
                 <th className="px-3 py-2 font-semibold"></th>
               </tr>
@@ -214,6 +237,9 @@ export default function PayrollView({
                   </td>
                   <td className="px-3 py-2 text-orange-600">
                     {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
+                  </td>
+                  <td className="px-3 py-2 text-purple-600">
+                    {s.hasInss ? `-${money(s.inss)}` : "—"}
                   </td>
                   <td className="px-3 py-2 font-bold text-in">{money(s.net)}</td>
                   <td className="px-3 py-2">
@@ -273,7 +299,7 @@ export default function PayrollView({
             <input
               value={formReason}
               onChange={(e) => setFormReason(e.target.value)}
-              placeholder="مثلاً: تأخير"
+              placeholder="مثلاً: تأخير، أو دين شهر ماضي"
               className="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
             />
           </div>
@@ -352,6 +378,14 @@ export default function PayrollView({
           deductions={payslipDeductions}
           expenses={payslipExpenses}
           onClose={() => setPayslipWorkerId(null)}
+        />
+      )}
+
+      {showAllSlip && (
+        <PayrollAllSlipModal
+          summaries={summaries}
+          monthLabel={formatMonthLabel(selectedMonth)}
+          onClose={() => setShowAllSlip(false)}
         />
       )}
     </div>

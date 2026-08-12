@@ -106,6 +106,10 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
     onUpdate(worker.id, { wage: num });
   }
 
+  function toggleInss(worker) {
+    onUpdate(worker.id, { hasInss: !worker.hasInss });
+  }
+
   function handlePurge(worker) {
     const ok = window.confirm(
       `متأكد إنك عايز تمسح "${worker.name}" نهائي؟\nهيتمسح هو وكل سجلات حضوره وخصوماته من السجل والتقارير والرواتب، ومفيش رجعة بعد كده.`
@@ -200,21 +204,32 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
                 const draftVal = drafts[w.id] ?? w.wage ?? 0;
                 const isDirty = Number(draftVal) !== Number(w.wage || 0);
                 return (
-                  <li key={w.id} className="flex items-center justify-between gap-2 py-2">
+                  <li key={w.id} className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm font-medium text-ink">{w.name}</p>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        value={draftVal}
-                        onChange={(e) => setDraft(w.id, e.target.value)}
-                        type="number"
-                        className={`tabular w-24 rounded-lg border px-2.5 py-1.5 text-sm outline-none focus:border-steel ${
-                          isDirty ? "border-steel bg-white text-ink" : "border-line bg-white text-ink"
-                        }`}
-                      />
-                      <span className="text-xs text-out">Kz/شهر</span>
-                      <span className="text-[11px] text-out">
-                        (≈ {dailyFromMonthly(draftVal).toLocaleString("en-US")} Kz/يوم)
-                      </span>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          value={draftVal}
+                          onChange={(e) => setDraft(w.id, e.target.value)}
+                          type="number"
+                          className={`tabular w-24 rounded-lg border px-2.5 py-1.5 text-sm outline-none focus:border-steel ${
+                            isDirty ? "border-steel bg-white text-ink" : "border-line bg-white text-ink"
+                          }`}
+                        />
+                        <span className="text-xs text-out">Kz/شهر</span>
+                        <span className="text-[11px] text-out">
+                          (≈ {dailyFromMonthly(draftVal).toLocaleString("en-US")} Kz/يوم)
+                        </span>
+                      </div>
+                      <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-out">
+                        <input
+                          type="checkbox"
+                          checked={!!w.hasInss}
+                          onChange={() => toggleInss(w)}
+                          className="h-4 w-4 accent-in"
+                        />
+                        ضمان اجتماعي (3%)
+                      </label>
                     </div>
                   </li>
                 );
@@ -256,9 +271,15 @@ export default function OwnerWorkersManager({ workers, onAdd, onRemove, onPurge,
                 >
                   {(w.wage || 0).toLocaleString("en-US")} Kz/شهر
                 </button>
-                <span className="text-[11px] text-out">
-                  ≈ {dailyFromMonthly(w.wage).toLocaleString("en-US")} Kz/يوم
-                </span>
+                <label className="flex cursor-pointer items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-xs font-semibold text-out hover:bg-page">
+                  <input
+                    type="checkbox"
+                    checked={!!w.hasInss}
+                    onChange={() => toggleInss(w)}
+                    className="h-3.5 w-3.5 accent-in"
+                  />
+                  ضمان اجتماعي
+                </label>
                 <button
                   onClick={() => onRemove(w.id)}
                   title="بيوقف عن الظهور في اليوم، وسجلاته القديمة تفضل موجودة"

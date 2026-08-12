@@ -14,7 +14,7 @@ export default function PayslipModal({ summary, monthLabel, deductions, expenses
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 px-4 py-6 print:static print:overflow-visible print:bg-white print:p-0"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 px-4 py-6 print:static print:block print:overflow-visible print:bg-white print:p-0"
       onClick={onClose}
     >
       {/* Print rules: hide everything on the page except this card. */}
@@ -22,7 +22,13 @@ export default function PayslipModal({ summary, monthLabel, deductions, expenses
         @media print {
           body * { visibility: hidden; }
           .payslip-print, .payslip-print * { visibility: visible; }
-          .payslip-print { position: fixed; inset: 0; width: 100%; box-shadow: none !important; }
+          .payslip-print {
+            position: static;
+            width: 100%;
+            box-shadow: none !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
           .print-hide { display: none !important; }
         }
       `}</style>
@@ -116,6 +122,13 @@ export default function PayslipModal({ summary, monthLabel, deductions, expenses
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {summary.hasInss && (
+          <div className="mt-4 flex items-center justify-between rounded-lg border border-line bg-page px-3 py-2 text-sm">
+            <span className="font-semibold text-ink">الضمان الاجتماعي (INSS) — 3%</span>
+            <span className="tabular font-bold text-ink">-{money(summary.inss)}</span>
           </div>
         )}
 

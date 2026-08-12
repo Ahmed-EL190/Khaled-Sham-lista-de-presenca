@@ -11,8 +11,29 @@ export function dayType(dateKey, schedule) {
 // المرتب اللي بيتحط لكل عامل هو المرتب الإجمالي الشهري، واليومية بتتحسب منه أوتوماتيك بقسمته على 30 يوم.
 const DAYS_IN_MONTH = 30;
 
+// نسبة الضمان الاجتماعي (INSS) اللي بتتخصم من مرتب العمال المسجلين فيه بس — بتتحسب على المرتب الشهري الكامل.
+const INSS_RATE = 0.03;
+
 export function dailyWageFromMonthly(monthlyWage) {
   return (monthlyWage || 0) / DAYS_IN_MONTH;
+}
+
+function emptyBucket(workerId, name, monthlyWage, hasInss) {
+  return {
+    workerId,
+    name,
+    monthlyWage,
+    dailyWage: dailyWageFromMonthly(monthlyWage),
+    hasInss: !!hasInss,
+    fullDays: 0,
+    halfDays: 0,
+    offDaysWorked: 0,
+    gross: 0,
+    deductionsTotal: 0,
+    expensesTotal: 0,
+    inss: 0,
+    net: 0,
+  };
 }
 
 // Build a payroll summary per worker for a given (already date-filtered) set of records,
@@ -20,38 +41,13 @@ export function dailyWageFromMonthly(monthlyWage) {
 export function buildPayrollSummaries(workers, records, deductions, expenses, schedule) {
   const byWorker = {};
   for (const w of workers) {
-    const monthlyWage = w.wage || 0;
-    byWorker[w.id] = {
-      workerId: w.id,
-      name: w.name,
-      monthlyWage,
-      dailyWage: dailyWageFromMonthly(monthlyWage),
-      fullDays: 0,
-      halfDays: 0,
-      offDaysWorked: 0,
-      gross: 0,
-      deductionsTotal: 0,
-      expensesTotal: 0,
-      net: 0,
-    };
+    byWorker[w.id] = emptyBucket(w.id, w.name, w.wage || 0, w.hasInss);
   }
 
   for (const r of records) {
     if (!r.checkIn) continue;
     if (!byWorker[r.workerId]) {
-      byWorker[r.workerId] = {
-        workerId: r.workerId,
-        name: r.workerName || "عامل سابق",
-        monthlyWage: 0,
-        dailyWage: 0,
-        fullDays: 0,
-        halfDays: 0,
-        offDaysWorked: 0,
-        gross: 0,
-        deductionsTotal: 0,
-        expensesTotal: 0,
-        net: 0,
-      };
+      byWorker[r.workerId] = emptyBucket(r.workerId, r.workerName || "عامل سابق", 0, false);
     }
     const bucket = byWorker[r.workerId];
     const type = dayType(r.dateKey, schedule);
@@ -62,38 +58,14 @@ export function buildPayrollSummaries(workers, records, deductions, expenses, sc
 
   for (const d of deductions) {
     if (!byWorker[d.workerId]) {
-      byWorker[d.workerId] = {
-        workerId: d.workerId,
-        name: d.workerName || "عامل سابق",
-        monthlyWage: 0,
-        dailyWage: 0,
-        fullDays: 0,
-        halfDays: 0,
-        offDaysWorked: 0,
-        gross: 0,
-        deductionsTotal: 0,
-        expensesTotal: 0,
-        net: 0,
-      };
+      byWorker[d.workerId] = emptyBucket(d.workerId, d.workerName || "عامل سابق", 0, false);
     }
     byWorker[d.workerId].deductionsTotal += d.amount || 0;
   }
 
   for (const e of expenses) {
     if (!byWorker[e.workerId]) {
-      byWorker[e.workerId] = {
-        workerId: e.workerId,
-        name: e.workerName || "عامل سابق",
-        monthlyWage: 0,
-        dailyWage: 0,
-        fullDays: 0,
-        halfDays: 0,
-        offDaysWorked: 0,
-        gross: 0,
-        deductionsTotal: 0,
-        expensesTotal: 0,
-        net: 0,
-      };
+      byWorker[e.workerId] = emptyBucket(e.workerId, e.workerName || "عامل سابق", 0, false);
     }
     byWorker[e.workerId].expensesTotal += e.amount || 0;
   }
@@ -102,7 +74,9 @@ export function buildPayrollSummaries(workers, records, deductions, expenses, sc
     // off-days-worked are paid as full days (a bonus/overtime day)
     b.gross =
       b.fullDays * b.dailyWage + b.halfDays * (b.dailyWage / 2) + b.offDaysWorked * b.dailyWage;
-    b.net = b.gross - b.deductionsTotal - b.expensesTotal;
+    // الضمان الاجتماعي ثابت على المرتب الشهري الكامل، مش على أيام الحضور
+    b.inss = b.hasInss ? b.monthlyWage * INSS_RATE : 0;
+    b.net = b.gross - b.deductionsTotal - b.expensesTotal - b.inss;
   }
 
   return Object.values(byWorker).sort((a, b) => b.net - a.net);
