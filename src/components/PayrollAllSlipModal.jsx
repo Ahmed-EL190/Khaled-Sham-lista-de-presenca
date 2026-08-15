@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import logo from "../assets/logo.png";
 import { formatDateLong, todayKey } from "../lib/format";
 
@@ -20,16 +21,17 @@ export default function PayrollAllSlipModal({ summaries, monthLabel, onClose }) 
     { gross: 0, deductions: 0, expenses: 0, inss: 0, net: 0 }
   );
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 px-4 py-6 print:static print:block print:overflow-visible print:bg-white print:p-0"
       onClick={onClose}
     >
-      {/* Print rules: hide everything on the page except this card, and never repeat it per page. */}
+      {/* Print rules: this modal is portaled straight onto <body>, so hiding #root (the whole
+          rest of the app) removes it from layout completely instead of just making it invisible —
+          that's what stops the extra blank pages before the printed content. */}
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          .payroll-all-print, .payroll-all-print * { visibility: visible; }
+          #root { display: none !important; }
           .payroll-all-print {
             position: static;
             width: 100%;
@@ -144,6 +146,7 @@ export default function PayrollAllSlipModal({ summaries, monthLabel, onClose }) 
           تم إصدار الكشف بتاريخ {formatDateLong(todayKey())}
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
