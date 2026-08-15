@@ -78,11 +78,17 @@ export default function PayslipModal({ summary, monthLabel, deductions, expenses
           </div>
           <div className="rounded-lg bg-page px-3 py-2">
             <p className="text-xs text-out">أيام كاملة</p>
-            <p className="tabular font-semibold text-ink">{summary.fullDays + summary.offDaysWorked}</p>
+            <p className="tabular font-semibold text-ink">
+              {summary.fullDays + summary.offDaysWorked + summary.paidHolidayDays}
+            </p>
           </div>
           <div className="rounded-lg bg-page px-3 py-2">
             <p className="text-xs text-out">نص أيام</p>
             <p className="tabular font-semibold text-ink">{summary.halfDays}</p>
+          </div>
+          <div className="rounded-lg bg-page px-3 py-2">
+            <p className="text-xs text-out">منها إجازات مدفوعة (الأحد)</p>
+            <p className="tabular font-semibold text-ink">{summary.paidHolidayDays}</p>
           </div>
         </div>
 

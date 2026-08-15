@@ -63,7 +63,14 @@ export default function PayrollView({
   );
 
   const summaries = useMemo(
-    () => buildPayrollSummaries(workers, filteredRecords, filteredDeductions, filteredExpenses, schedule),
+    () =>
+      buildPayrollSummaries(
+        workers,
+        filteredRecords,
+        filteredDeductions,
+        filteredExpenses,
+        schedule
+      ),
     [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule]
   );
 
@@ -159,8 +166,12 @@ export default function PayrollView({
                 <div className="rounded-lg bg-page px-3 py-2">
                   <p className="text-out">أيام كاملة</p>
                   <p className="tabular mt-0.5 font-semibold text-ink">
-                    {s.fullDays + s.offDaysWorked}
+                    {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
                   </p>
+                </div>
+                <div className="rounded-lg bg-page px-3 py-2">
+                  <p className="text-out">منها إجازات مدفوعة</p>
+                  <p className="tabular mt-0.5 font-semibold text-ink">{s.paidHolidayDays}</p>
                 </div>
                 <div className="rounded-lg bg-page px-3 py-2">
                   <p className="text-out">نص أيام</p>
@@ -212,6 +223,7 @@ export default function PayrollView({
                 <th className="px-3 py-2 font-semibold">المرتب الشهري</th>
                 <th className="px-3 py-2 font-semibold">اليومية</th>
                 <th className="px-3 py-2 font-semibold">أيام كاملة</th>
+                <th className="px-3 py-2 font-semibold">إجازات مدفوعة</th>
                 <th className="px-3 py-2 font-semibold">نص أيام</th>
                 <th className="px-3 py-2 font-semibold">الإجمالي المستحق</th>
                 <th className="px-3 py-2 font-semibold">الخصومات</th>
@@ -229,7 +241,10 @@ export default function PayrollView({
                   <td className="px-3 py-2 text-ink-soft">
                     {roundDaily(s.dailyWage).toLocaleString("en-US")} Kz
                   </td>
-                  <td className="px-3 py-2 text-ink-soft">{s.fullDays + s.offDaysWorked}</td>
+                  <td className="px-3 py-2 text-ink-soft">
+                    {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
+                  </td>
+                  <td className="px-3 py-2 text-ink-soft">{s.paidHolidayDays}</td>
                   <td className="px-3 py-2 text-ink-soft">{s.halfDays}</td>
                   <td className="px-3 py-2 text-ink-soft">{money(s.gross)}</td>
                   <td className="px-3 py-2 text-red-600">

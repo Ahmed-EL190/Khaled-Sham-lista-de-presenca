@@ -80,6 +80,7 @@ export default function PayrollAllSlipModal({ summaries, monthLabel, onClose }) 
                 <th className="whitespace-nowrap px-2 py-2 font-semibold">العامل</th>
                 <th className="whitespace-nowrap px-2 py-2 font-semibold">المرتب الشهري</th>
                 <th className="whitespace-nowrap px-2 py-2 font-semibold">أيام كاملة</th>
+                <th className="whitespace-nowrap px-2 py-2 font-semibold">إجازات مدفوعة</th>
                 <th className="whitespace-nowrap px-2 py-2 font-semibold">نص أيام</th>
                 <th className="whitespace-nowrap px-2 py-2 font-semibold">الإجمالي المستحق</th>
                 <th className="whitespace-nowrap px-2 py-2 font-semibold">الخصومات</th>
@@ -95,7 +96,10 @@ export default function PayrollAllSlipModal({ summaries, monthLabel, onClose }) 
                   <td className="px-2 py-2 text-ink-soft">{i + 1}</td>
                   <td className="whitespace-nowrap px-2 py-2 font-semibold text-ink">{s.name}</td>
                   <td className="px-2 py-2 text-ink-soft">{money(s.monthlyWage)}</td>
-                  <td className="px-2 py-2 text-ink-soft">{s.fullDays + s.offDaysWorked}</td>
+                  <td className="px-2 py-2 text-ink-soft">
+                    {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
+                  </td>
+                  <td className="px-2 py-2 text-ink-soft">{s.paidHolidayDays}</td>
                   <td className="px-2 py-2 text-ink-soft">{s.halfDays}</td>
                   <td className="px-2 py-2 text-ink-soft">{money(s.gross)}</td>
                   <td className="px-2 py-2 text-red-600">
@@ -116,7 +120,7 @@ export default function PayrollAllSlipModal({ summaries, monthLabel, onClose }) 
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-line font-bold text-ink">
-                <td className="px-2 py-2" colSpan={5}>
+                <td className="px-2 py-2" colSpan={6}>
                   الإجمالي
                 </td>
                 <td className="px-2 py-2">{money(totals.gross)}</td>

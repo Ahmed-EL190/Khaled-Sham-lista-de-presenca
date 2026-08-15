@@ -11,6 +11,18 @@ export function dayType(dateKey, schedule) {
 // المرتب اللي بيتحط لكل عامل هو المرتب الإجمالي الشهري، واليومية بتتحسب منه أوتوماتيك بقسمته على 30 يوم.
 const DAYS_IN_MONTH = 30;
 
+// الشهر بيتحسب دايمًا 30 يوم = 4 أسابيع بالظبط (مش بتاريخ الشهر الحقيقي)،
+// فأيام الإجازة الأسبوعية (يوم الأحد وكدا) بتتحسب: عدد أيام الإجازة في الأسبوع الواحد × 4.
+// يعني لو الأحد بس هو الإجازة → 1 × 4 = 4 أيام كل شهر، ثابتة، مهما كان الشهر فيه كام يوم فعليًا.
+const WEEKS_PER_MONTH = 4;
+
+// بيحسب عدد أيام الإجازة الرسمية المدفوعة في الشهر، على حسب جدول الإجازات (schedule.offDays).
+// الأيام دي هتتحسب في المرتب كأن العامل حضرها عادي، من غير ما تتسجل ليه حضور فيها.
+export function countScheduledOffDaysInMonth(schedule) {
+  const offDaysPerWeek = schedule?.offDays?.length || 0;
+  return offDaysPerWeek * WEEKS_PER_MONTH;
+}
+
 // نسبة الضمان الاجتماعي (INSS) اللي بتتخصم من مرتب العمال المسجلين فيه بس — بتتحسب على المرتب الشهري الكامل.
 const INSS_RATE = 0.03;
 
@@ -28,6 +40,7 @@ function emptyBucket(workerId, name, monthlyWage, hasInss) {
     fullDays: 0,
     halfDays: 0,
     offDaysWorked: 0,
+    paidHolidayDays: 0,
     gross: 0,
     deductionsTotal: 0,
     expensesTotal: 0,
@@ -40,6 +53,7 @@ function emptyBucket(workerId, name, monthlyWage, hasInss) {
 // deductions, and expenses (advances the worker already took — both reduce net pay).
 export function buildPayrollSummaries(workers, records, deductions, expenses, schedule) {
   const byWorker = {};
+  const scheduledOffDays = countScheduledOffDaysInMonth(schedule);
   for (const w of workers) {
     byWorker[w.id] = emptyBucket(w.id, w.name, w.wage || 0, w.hasInss);
   }
@@ -71,9 +85,17 @@ export function buildPayrollSummaries(workers, records, deductions, expenses, sc
   }
 
   for (const b of Object.values(byWorker)) {
+    // العامل بيتحسبله أيام الأجازة الرسمية (يوم الأحد وكدا) في المرتب أوتوماتيك، حتى لو مسجلش حضور فيها،
+    // بشرط يكون شغال فعلاً في الشهر ده (يعني عنده أيام حضور حقيقية مسجلة، مش عامل مضاف بس).
+    const wasActiveThisMonth = b.fullDays + b.halfDays + b.offDaysWorked > 0;
+    b.paidHolidayDays = wasActiveThisMonth ? scheduledOffDays : 0;
+
     // off-days-worked are paid as full days (a bonus/overtime day)
     b.gross =
-      b.fullDays * b.dailyWage + b.halfDays * (b.dailyWage / 2) + b.offDaysWorked * b.dailyWage;
+      b.fullDays * b.dailyWage +
+      b.halfDays * (b.dailyWage / 2) +
+      b.offDaysWorked * b.dailyWage +
+      b.paidHolidayDays * b.dailyWage;
     // الضمان الاجتماعي ثابت على المرتب الشهري الكامل، مش على أيام الحضور
     b.inss = b.hasInss ? b.monthlyWage * INSS_RATE : 0;
     b.net = b.gross - b.deductionsTotal - b.expensesTotal - b.inss;
