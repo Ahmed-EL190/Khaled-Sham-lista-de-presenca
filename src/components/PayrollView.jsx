@@ -341,7 +341,13 @@ export default function PayrollView({
                     <p className="font-medium text-ink">
                       {d.workerName} <span className="text-out">— {formatDateLong(d.dateKey)}</span>
                     </p>
-                    {d.reason && <p className="text-xs text-out">{d.reason}</p>}
+                    <p className="text-xs text-out">
+                      {d.reason && <span>{d.reason}</span>}
+                      {d.reason && d.siteName && <span> · </span>}
+                      {d.siteName && (
+                        <span className="font-semibold text-steel">سجّله: {d.siteName}</span>
+                      )}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {editingId === d.id ? (
