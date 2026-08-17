@@ -36,6 +36,7 @@ export default function ReportsView({
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
   const [selectedWorkerId, setSelectedWorkerId] = useState("all");
   const [selectedDay, setSelectedDay] = useState("all");
+  const [siteSearch, setSiteSearch] = useState("");
 
   const filteredRecords = useMemo(() => {
     if (selectedMonth === "all") return records;
@@ -138,7 +139,13 @@ export default function ReportsView({
     return list.filter((x) => x.dateKey === dateKey);
   }
 
-  const hasData = mode === "worker" ? visibleWorkerSummaries.length > 0 : siteDailyReports.length > 0;
+  const visibleSiteReports = useMemo(() => {
+    const term = siteSearch.trim();
+    if (!term) return siteDailyReports;
+    return siteDailyReports.filter((s) => s.name?.includes(term));
+  }, [siteDailyReports, siteSearch]);
+
+  const hasData = mode === "worker" ? visibleWorkerSummaries.length > 0 : visibleSiteReports.length > 0;
 
   function handlePurge(workerId, name) {
     const ok = window.confirm(
@@ -172,6 +179,16 @@ export default function ReportsView({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {mode === "site" && (
+            <div className="w-48">
+              <input
+                value={siteSearch}
+                onChange={(e) => setSiteSearch(e.target.value)}
+                placeholder="ابحث باسم الورشة"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              />
+            </div>
+          )}
           {mode === "worker" && (
             <div className="w-48">
               <WorkerPicker
@@ -348,7 +365,7 @@ export default function ReportsView({
 
       {mode === "site" && hasData && (
         <div className="flex flex-col gap-4">
-          {siteDailyReports.map((s) => (
+          {visibleSiteReports.map((s) => (
             <div key={s.siteId} className="rounded-xl border border-line bg-white p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-base font-bold text-ink">{s.name}</p>
