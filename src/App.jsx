@@ -31,6 +31,7 @@ import {
   subscribeAllRecords,
   punchIn,
   punchOut,
+  autoPunchOut,
   clearCheckOut,
   deleteRecord,
   subscribeSchedule,
@@ -45,6 +46,10 @@ import {
   updateExpense,
   addLateRecord,
 } from "./lib/firestore";
+
+// انصراف تلقائي: أي حد نسي يعمل انصراف بيتسجله الموقع أوتوماتيك بعد الساعة دي.
+const AUTO_CHECKOUT_HOUR = 17;
+const AUTO_CHECKOUT_MINUTE = 30;
 
 const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
@@ -116,6 +121,29 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, session, scopeSiteId, today, isOwner]);
+    // انصراف تلقائي بعد الساعة 5:30 مساءً لأي عامل حضر ونسي يعمل انصراف.
+  // بيتفحص فور فتح الموقع، وبعدين كل دقيقة، طول ما الموقع فاتح عند حد.
+  useEffect(() => {
+    if (!authed || !session) return;
+
+    function runAutoCheckout() {
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setHours(AUTO_CHECKOUT_HOUR, AUTO_CHECKOUT_MINUTE, 0, 0);
+      if (now < cutoff) return;
+
+      const cutoffIso = cutoff.toISOString();
+      todayRecords
+        .filter((r) => r.checkIn && !r.checkOut)
+        .forEach((r) => {
+          autoPunchOut({ dateKey: today, workerId: r.workerId, checkOutAt: cutoffIso });
+        });
+    }
+
+    runAutoCheckout();
+    const interval = setInterval(runAutoCheckout, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [authed, session, todayRecords, today]);
 
   const todayByWorker = useMemo(() => {
     const map = {};

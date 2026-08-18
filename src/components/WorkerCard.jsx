@@ -79,10 +79,18 @@ export default function WorkerCard({ worker, entry, onPunch, onReset, readOnly =
               {formatTime(entry?.checkIn) || "—"}
             </p>
           </div>
-          <div className="bg-white px-3 py-2.5 sm:px-4">
+                    <div className="bg-white px-3 py-2.5 sm:px-4">
             <p className="text-[10px] font-medium text-out">انصراف</p>
             <p className="tabular text-xs font-semibold text-ink sm:text-sm">
               {formatTime(entry?.checkOut) || "—"}
+              {entry?.autoCheckedOut && (
+                <span
+                  title="اتسجل تلقائي لأن العامل نسي يعمل انصراف"
+                  className="mr-1 rounded bg-pending-soft px-1 py-0.5 text-[9px] font-semibold text-pending align-middle"
+                >
+                  تلقائي
+                </span>
+              )}
             </p>
           </div>
         </div>
