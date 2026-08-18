@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { buildPayrollSummaries } from "../lib/payroll";
-import { formatMonthLabel, formatDateLong, todayKey } from "../lib/format";
+import { formatMonthLabel, todayKey } from "../lib/format";
 import PayslipModal from "./PayslipModal";
 import PayrollAllSlipModal from "./PayrollAllSlipModal";
 
@@ -12,51 +12,7 @@ function money(n) {
   return `${(n || 0).toLocaleString("en-US")} Kz`;
 }
 
-export default function PayrollView({
-  workers,
-  records,
-  deductions,
-  expenses,
-  schedule,
-  onAddDeduction,
-  onRemoveDeduction,
-  onUpdateDeduction,
-  onAddExpense,
-  onRemoveExpense,
-  onUpdateExpense,
-}) {
-  const [editingId, setEditingId] = useState(null);
-  const [editAmount, setEditAmount] = useState("");
-
-  function startEdit(d) {
-    setEditingId(d.id);
-    setEditAmount(d.amount);
-  }
-
-  function saveEdit(d) {
-    const num = Number(editAmount);
-    if (!Number.isNaN(num) && num !== Number(d.amount)) {
-      onUpdateDeduction(d.id, { amount: num });
-    }
-    setEditingId(null);
-  }
-
-  const [editingExpenseId, setEditingExpenseId] = useState(null);
-  const [editExpenseAmount, setEditExpenseAmount] = useState("");
-
-  function startEditExpense(item) {
-    setEditingExpenseId(item.id);
-    setEditExpenseAmount(item.amount);
-  }
-
-  function saveEditExpense(item) {
-    const num = Number(editExpenseAmount);
-    if (!Number.isNaN(num) && num !== Number(item.amount) && onUpdateExpense) {
-      onUpdateExpense(item.id, { amount: num });
-    }
-    setEditingExpenseId(null);
-  }
-
+export default function PayrollView({ workers, records, deductions, expenses, schedule }) {
   const monthKeys = useMemo(() => {
     const set = new Set([
       ...records.map((r) => r.dateKey?.slice(0, 7)),
@@ -94,6 +50,48 @@ export default function PayrollView({
     [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule]
   );
 
+  // ---- search + accordion state ----
+  const [search, setSearch] = useState("");
+  const [expandedIds, setExpandedIds] = useState(new Set());
+
+  function toggleWorker(id) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const filteredSummaries = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return summaries;
+    return summaries.filter((s) => (s.name || "").toLowerCase().includes(q));
+  }, [summaries, search]);
+
+  function expandAll() {
+    setExpandedIds(new Set(filteredSummaries.map((s) => s.workerId)));
+  }
+  function collapseAll() {
+    setExpandedIds(new Set());
+  }
+
+  const totals = useMemo(
+    () =>
+      filteredSummaries.reduce(
+        (acc, s) => {
+          acc.gross += s.gross || 0;
+          acc.deductions += s.deductionsTotal || 0;
+          acc.expenses += s.expensesTotal || 0;
+          acc.inss += s.hasInss ? s.inss || 0 : 0;
+          acc.net += s.net || 0;
+          return acc;
+        },
+        { gross: 0, deductions: 0, expenses: 0, inss: 0, net: 0 }
+      ),
+    [filteredSummaries]
+  );
+
   // ---- single payslip modal ----
   const [payslipWorkerId, setPayslipWorkerId] = useState(null);
   const payslipSummary = summaries.find((s) => s.workerId === payslipWorkerId) || null;
@@ -108,48 +106,6 @@ export default function PayrollView({
 
   // ---- all-workers payslip modal ----
   const [showAllSlip, setShowAllSlip] = useState(false);
-
-  // ---- add deduction form ----
-  const [formWorkerId, setFormWorkerId] = useState(workers[0]?.id || "");
-  const [formAmount, setFormAmount] = useState("");
-  const [formReason, setFormReason] = useState("");
-  const [formDate, setFormDate] = useState(todayKey());
-
-  function submitDeduction(e) {
-    e.preventDefault();
-    const worker = workers.find((w) => w.id === formWorkerId);
-    if (!worker || !formAmount) return;
-    onAddDeduction({
-      workerId: worker.id,
-      workerName: worker.name,
-      dateKey: formDate,
-      amount: formAmount,
-      reason: formReason,
-    });
-    setFormAmount("");
-    setFormReason("");
-  }
-
-  // ---- add expense form ----
-  const [formExpenseWorkerId, setFormExpenseWorkerId] = useState(workers[0]?.id || "");
-  const [formExpenseAmount, setFormExpenseAmount] = useState("");
-  const [formExpenseReason, setFormExpenseReason] = useState("");
-  const [formExpenseDate, setFormExpenseDate] = useState(todayKey());
-
-  function submitExpense(e) {
-    e.preventDefault();
-    const worker = workers.find((w) => w.id === formExpenseWorkerId);
-    if (!worker || !formExpenseAmount || !onAddExpense) return;
-    onAddExpense({
-      workerId: worker.id,
-      workerName: worker.name,
-      dateKey: formExpenseDate,
-      amount: formExpenseAmount,
-      reason: formExpenseReason,
-    });
-    setFormExpenseAmount("");
-    setFormExpenseReason("");
-  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -184,376 +140,190 @@ export default function PayrollView({
         </div>
       )}
 
-      {/* Mobile: stacked cards */}
       {summaries.length > 0 && (
-        <div className="flex flex-col gap-3 sm:hidden">
-          {summaries.map((s) => (
-            <div key={s.workerId} className="rounded-xl border border-line bg-white p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-base font-bold text-ink">{s.name}</p>
-                <span className="tabular text-lg font-black text-ink">{money(s.net)}</span>
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">المرتب الشهري</p>
-                  <p className="tabular mt-0.5 font-semibold text-ink">{money(s.monthlyWage)}</p>
-                </div>
-                <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">اليومية</p>
-                  <p className="tabular mt-0.5 font-semibold text-ink">
-                    {roundDaily(s.dailyWage).toLocaleString("en-US")} Kz
-                  </p>
-                </div>
-                <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">أيام كاملة</p>
-                  <p className="tabular mt-0.5 font-semibold text-ink">
-                    {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">منها إجازات مدفوعة</p>
-                  <p className="tabular mt-0.5 font-semibold text-ink">{s.paidHolidayDays}</p>
-                </div>
-                <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">نص أيام</p>
-                  <p className="tabular mt-0.5 font-semibold text-ink">{s.halfDays}</p>
-                </div>
-                <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">الإجمالي المستحق</p>
-                  <p className="tabular mt-0.5 font-semibold text-ink">{money(s.gross)}</p>
-                </div>
-                <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">الخصومات</p>
-                  <p className="tabular mt-0.5 font-semibold text-red-600">
-                    {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-page px-3 py-2">
-                  <p className="text-out">المصروفات/السلف</p>
-                  <p className="tabular mt-0.5 font-semibold text-orange-600">
-                    {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
-                  </p>
-                </div>
-                {s.hasInss && (
-                  <div className="rounded-lg bg-page px-3 py-2">
-                    <p className="text-out">الضمان الاجتماعي (3%)</p>
-                    <p className="tabular mt-0.5 font-semibold text-purple-600">
-                      -{money(s.inss)}
-                    </p>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setPayslipWorkerId(s.workerId)}
-                className="mt-3 w-full rounded-lg border border-line py-2 text-xs font-semibold text-steel hover:bg-mist"
+        <>
+          {/* Search bar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-48 flex-1">
+              <svg
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-out"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
               >
-                كشف / PDF
-              </button>
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
+              </svg>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="دوّر باسم العامل..."
+                className="w-full rounded-lg border border-line bg-white py-2 pl-3 pr-9 text-sm text-ink outline-none focus:border-steel"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-out hover:bg-page hover:text-ink"
+                  title="امسح البحث"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Desktop / tablet: table */}
-      {summaries.length > 0 && (
-        <div className="hidden overflow-x-auto rounded-xl border border-line bg-white sm:block">
-          <table className="w-full min-w-160 text-right text-sm">
-            <thead>
-              <tr className="border-b border-line bg-page text-xs text-out">
-                <th className="px-3 py-2 font-semibold">العامل</th>
-                <th className="px-3 py-2 font-semibold">المرتب الشهري</th>
-                <th className="px-3 py-2 font-semibold">اليومية</th>
-                <th className="px-3 py-2 font-semibold">أيام كاملة</th>
-                <th className="px-3 py-2 font-semibold">إجازات مدفوعة</th>
-                <th className="px-3 py-2 font-semibold">نص أيام</th>
-                <th className="px-3 py-2 font-semibold">الإجمالي المستحق</th>
-                <th className="px-3 py-2 font-semibold">الخصومات</th>
-                <th className="px-3 py-2 font-semibold">المصروفات/السلف</th>
-                <th className="px-3 py-2 font-semibold">الضمان الاجتماعي</th>
-                <th className="px-3 py-2 font-semibold">الصافي</th>
-                <th className="px-3 py-2 font-semibold"></th>
-              </tr>
-            </thead>
-            <tbody className="tabular divide-y divide-line">
-              {summaries.map((s) => (
-                <tr key={s.workerId}>
-                  <td className="px-3 py-2 font-semibold text-ink">{s.name}</td>
-                  <td className="px-3 py-2 text-ink-soft">{money(s.monthlyWage)}</td>
-                  <td className="px-3 py-2 text-ink-soft">
-                    {roundDaily(s.dailyWage).toLocaleString("en-US")} Kz
-                  </td>
-                  <td className="px-3 py-2 text-ink-soft">
-                    {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
-                  </td>
-                  <td className="px-3 py-2 text-ink-soft">{s.paidHolidayDays}</td>
-                  <td className="px-3 py-2 text-ink-soft">{s.halfDays}</td>
-                  <td className="px-3 py-2 text-ink-soft">{money(s.gross)}</td>
-                  <td className="px-3 py-2 text-red-600">
-                    {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-orange-600">
-                    {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
-                  </td>
-                  <td className="px-3 py-2 text-purple-600">
-                    {s.hasInss ? `-${money(s.inss)}` : "—"}
-                  </td>
-                  <td className="px-3 py-2 font-bold text-in">{money(s.net)}</td>
-                  <td className="px-3 py-2">
-                    <button
-                      onClick={() => setPayslipWorkerId(s.workerId)}
-                      className="rounded-md border border-line px-2.5 py-1 text-xs font-semibold text-steel hover:bg-mist"
-                    >
-                      كشف / PDF
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Add deduction */}
-      <div className="rounded-xl border border-line bg-white p-4">
-        <h3 className="text-sm font-bold text-ink">تسجيل خصم</h3>
-        <form onSubmit={submitDeduction} className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2">
-          <div className="flex w-full flex-col gap-1 sm:w-44">
-            <label className="text-[11px] text-out">العامل</label>
-            <select
-              value={formWorkerId}
-              onChange={(e) => setFormWorkerId(e.target.value)}
-              className="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+            <button
+              onClick={expandAll}
+              className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-steel hover:bg-mist"
             >
-              {workers.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex w-full flex-col gap-1 sm:w-36">
-            <label className="text-[11px] text-out">التاريخ</label>
-            <input
-              type="date"
-              value={formDate}
-              onChange={(e) => setFormDate(e.target.value)}
-              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            />
-          </div>
-          <div className="flex w-full flex-col gap-1 sm:w-24">
-            <label className="text-[11px] text-out">المبلغ (Kz)</label>
-            <input
-              type="number"
-              value={formAmount}
-              onChange={(e) => setFormAmount(e.target.value)}
-              placeholder="0"
-              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            />
-          </div>
-          <div className="flex w-full flex-1 flex-col gap-1 sm:min-w-40">
-            <label className="text-[11px] text-out">السبب (اختياري)</label>
-            <input
-              value={formReason}
-              onChange={(e) => setFormReason(e.target.value)}
-              placeholder="مثلاً: تأخير، أو دين شهر ماضي"
-              className="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink-soft sm:w-auto"
-          >
-            تسجيل
-          </button>
-        </form>
-      </div>
-
-      {/* Deductions list */}
-      {filteredDeductions.length > 0 && (
-        <div className="rounded-xl border border-line bg-white p-4">
-          <h3 className="text-sm font-bold text-ink">خصومات الشهر ده</h3>
-          <ul className="mt-2 flex flex-col divide-y divide-line">
-            {filteredDeductions
-              .slice()
-              .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1))
-              .map((d) => (
-                <li key={d.id} className="flex items-center justify-between py-2 text-sm">
-                  <div>
-                    <p className="font-medium text-ink">
-                      {d.workerName} <span className="text-out">— {formatDateLong(d.dateKey)}</span>
-                    </p>
-                    <p className="text-xs text-out">
-                      {d.reason && <span>{d.reason}</span>}
-                      {d.reason && d.siteName && <span> · </span>}
-                      {d.siteName && (
-                        <span className="font-semibold text-steel">سجّله: {d.siteName}</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {editingId === d.id ? (
-                      <>
-                        <input
-                          autoFocus
-                          type="number"
-                          value={editAmount}
-                          onChange={(e) => setEditAmount(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEdit(d);
-                            if (e.key === "Escape") setEditingId(null);
-                          }}
-                          className="tabular w-20 rounded-lg border border-steel bg-white px-2 py-1 text-sm text-ink outline-none"
-                        />
-                        <button
-                          onClick={() => saveEdit(d)}
-                          className="rounded-md px-2 py-1 text-xs font-semibold text-in hover:bg-page"
-                        >
-                          حفظ
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => startEdit(d)}
-                        title="دوس تعدل المبلغ"
-                        className="tabular font-bold text-red-600 hover:underline"
-                      >
-                        -{money(d.amount)}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => onRemoveDeduction(d.id)}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
-                    >
-                      حذف
-                    </button>
-                  </div>
-                </li>
-              ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Add expense */}
-      <div className="rounded-xl border border-line bg-white p-4">
-        <h3 className="text-sm font-bold text-ink">تسجيل مصروف / سلفة</h3>
-        <form onSubmit={submitExpense} className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2">
-          <div className="flex w-full flex-col gap-1 sm:w-44">
-            <label className="text-[11px] text-out">العامل</label>
-            <select
-              value={formExpenseWorkerId}
-              onChange={(e) => setFormExpenseWorkerId(e.target.value)}
-              className="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              افتح الكل
+            </button>
+            <button
+              onClick={collapseAll}
+              className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-steel hover:bg-mist"
             >
-              {workers.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
+              اقفل الكل
+            </button>
           </div>
-          <div className="flex w-full flex-col gap-1 sm:w-36">
-            <label className="text-[11px] text-out">التاريخ</label>
-            <input
-              type="date"
-              value={formExpenseDate}
-              onChange={(e) => setFormExpenseDate(e.target.value)}
-              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            />
-          </div>
-          <div className="flex w-full flex-col gap-1 sm:w-24">
-            <label className="text-[11px] text-out">المبلغ (Kz)</label>
-            <input
-              type="number"
-              value={formExpenseAmount}
-              onChange={(e) => setFormExpenseAmount(e.target.value)}
-              placeholder="0"
-              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            />
-          </div>
-          <div className="flex w-full flex-1 flex-col gap-1 sm:min-w-40">
-            <label className="text-[11px] text-out">السبب (اختياري)</label>
-            <input
-              value={formExpenseReason}
-              onChange={(e) => setFormExpenseReason(e.target.value)}
-              placeholder="مثلاً: سلفة"
-              className="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink-soft sm:w-auto"
-          >
-            تسجيل
-          </button>
-        </form>
-      </div>
 
-      {/* Expenses list */}
-      {filteredExpenses.length > 0 && (
-        <div className="rounded-xl border border-line bg-white p-4">
-          <h3 className="text-sm font-bold text-ink">مصروفات الشهر ده</h3>
-          <ul className="mt-2 flex flex-col divide-y divide-line">
-            {filteredExpenses
-              .slice()
-              .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1))
-              .map((item) => (
-                <li key={item.id} className="flex items-center justify-between py-2 text-sm">
-                  <div>
-                    <p className="font-medium text-ink">
-                      {item.workerName} <span className="text-out">— {formatDateLong(item.dateKey)}</span>
-                    </p>
-                    <p className="text-xs text-out">
-                      {item.reason && <span>{item.reason}</span>}
-                      {item.reason && item.siteName && <span> · </span>}
-                      {item.siteName && (
-                        <span className="font-semibold text-steel">سجّله: {item.siteName}</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {editingExpenseId === item.id ? (
-                      <>
-                        <input
-                          autoFocus
-                          type="number"
-                          value={editExpenseAmount}
-                          onChange={(e) => setEditExpenseAmount(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEditExpense(item);
-                            if (e.key === "Escape") setEditingExpenseId(null);
-                          }}
-                          className="tabular w-20 rounded-lg border border-steel bg-white px-2 py-1 text-sm text-ink outline-none"
-                        />
-                        <button
-                          onClick={() => saveEditExpense(item)}
-                          className="rounded-md px-2 py-1 text-xs font-semibold text-in hover:bg-page"
+          {/* Summary totals */}
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-white p-4 sm:grid-cols-5">
+            <div>
+              <p className="text-[11px] text-out">الإجمالي المستحق</p>
+              <p className="tabular mt-0.5 text-base font-bold text-ink">{money(totals.gross)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-out">الخصومات</p>
+              <p className="tabular mt-0.5 text-base font-bold text-red-600">
+                {totals.deductions > 0 ? `-${money(totals.deductions)}` : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-out">المصروفات/السلف</p>
+              <p className="tabular mt-0.5 text-base font-bold text-orange-600">
+                {totals.expenses > 0 ? `-${money(totals.expenses)}` : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-out">الضمان الاجتماعي</p>
+              <p className="tabular mt-0.5 text-base font-bold text-purple-600">
+                {totals.inss > 0 ? `-${money(totals.inss)}` : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-out">الصافي الكلي</p>
+              <p className="tabular mt-0.5 text-lg font-black text-ink">{money(totals.net)}</p>
+            </div>
+          </div>
+
+          {/* Workers accordion */}
+          {filteredSummaries.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-line bg-white/60 py-8 text-center text-sm text-out">
+              مفيش عامل بالاسم ده
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {filteredSummaries.map((s) => {
+                const isOpen = expandedIds.has(s.workerId);
+                return (
+                  <div
+                    key={s.workerId}
+                    className="overflow-hidden rounded-xl border border-line bg-white"
+                  >
+                    <button
+                      onClick={() => toggleWorker(s.workerId)}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-3 text-right"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <svg
+                          className={`h-4 w-4 shrink-0 text-out transition-transform ${
+                            isOpen ? "-rotate-90" : ""
+                          }`}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
                         >
-                          حفظ
+                          <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <p className="truncate text-base font-bold text-ink">{s.name}</p>
+                      </div>
+                      <span className="tabular shrink-0 text-lg font-black text-ink">
+                        {money(s.net)}
+                      </span>
+                    </button>
+
+                    {isOpen && (
+                      <div className="border-t border-line px-4 py-3">
+                        <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                          <div className="rounded-lg bg-page px-3 py-2">
+                            <p className="text-out">المرتب الشهري</p>
+                            <p className="tabular mt-0.5 font-semibold text-ink">
+                              {money(s.monthlyWage)}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-page px-3 py-2">
+                            <p className="text-out">اليومية</p>
+                            <p className="tabular mt-0.5 font-semibold text-ink">
+                              {roundDaily(s.dailyWage).toLocaleString("en-US")} Kz
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-page px-3 py-2">
+                            <p className="text-out">أيام كاملة</p>
+                            <p className="tabular mt-0.5 font-semibold text-ink">
+                              {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-page px-3 py-2">
+                            <p className="text-out">منها إجازات مدفوعة</p>
+                            <p className="tabular mt-0.5 font-semibold text-ink">
+                              {s.paidHolidayDays}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-page px-3 py-2">
+                            <p className="text-out">نص أيام</p>
+                            <p className="tabular mt-0.5 font-semibold text-ink">{s.halfDays}</p>
+                          </div>
+                          <div className="rounded-lg bg-page px-3 py-2">
+                            <p className="text-out">الإجمالي المستحق</p>
+                            <p className="tabular mt-0.5 font-semibold text-ink">
+                              {money(s.gross)}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-page px-3 py-2">
+                            <p className="text-out">الخصومات</p>
+                            <p className="tabular mt-0.5 font-semibold text-red-600">
+                              {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-page px-3 py-2">
+                            <p className="text-out">المصروفات/السلف</p>
+                            <p className="tabular mt-0.5 font-semibold text-orange-600">
+                              {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
+                            </p>
+                          </div>
+                          {s.hasInss && (
+                            <div className="rounded-lg bg-page px-3 py-2">
+                              <p className="text-out">الضمان الاجتماعي (3%)</p>
+                              <p className="tabular mt-0.5 font-semibold text-purple-600">
+                                -{money(s.inss)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setPayslipWorkerId(s.workerId)}
+                          className="mt-3 w-full rounded-lg border border-line py-2 text-xs font-semibold text-steel hover:bg-mist sm:w-auto sm:px-6"
+                        >
+                          كشف / PDF
                         </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => startEditExpense(item)}
-                        disabled={!onUpdateExpense}
-                        title="دوس تعدل المبلغ"
-                        className="tabular font-bold text-orange-600 hover:underline disabled:no-underline"
-                      >
-                        -{money(item.amount)}
-                      </button>
-                    )}
-                    {onRemoveExpense && (
-                      <button
-                        onClick={() => onRemoveExpense(item.id)}
-                        className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
-                      >
-                        حذف
-                      </button>
+                      </div>
                     )}
                   </div>
-                </li>
-              ))}
-          </ul>
-        </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {payslipSummary && (

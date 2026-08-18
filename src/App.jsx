@@ -382,30 +382,12 @@ export default function App() {
         )}
 
         {tab === "payroll" && isOwner && (
-          <PayrollView
+                    <PayrollView
             workers={workers}
             records={allRecords}
             deductions={deductions}
             expenses={expenses}
             schedule={schedule}
-            onAddDeduction={(d) =>
-              addDeduction({
-                ...d,
-                siteId: session.siteId,
-                siteName: session.siteName,
-              })
-            }
-            onRemoveDeduction={removeDeduction}
-            onUpdateDeduction={updateDeduction}
-            onAddExpense={(e) =>
-              addExpense({
-                ...e,
-                siteId: session.siteId,
-                siteName: session.siteName,
-              })
-            }
-            onRemoveExpense={removeExpense}
-            onUpdateExpense={updateExpense}
           />
         )}
 

@@ -16,6 +16,15 @@ function docsFromSnap(snap) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+// ترتيب أبجدي عربي/إنجليزي سليم للأسماء (يتجاهل الفروق البسيطة زي التشكيل والحالة).
+function sortByName(list) {
+  return list
+    .slice()
+    .sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", ["ar", "en"], { sensitivity: "base" })
+    );
+}
+
 // ---------- Sites ----------
 export function subscribeSites(cb) {
   return onSnapshot(collection(db, "sites"), (snap) => cb(docsFromSnap(snap)));
@@ -35,8 +44,11 @@ export function removeSite(id) {
 
 // ---------- Workers ----------
 // العمال قايمة واحدة مشتركة بين كل الورش (مفيش ورشة ثابتة للعامل).
+// بترجع مرتبة أبجديًا بالاسم عشان تفضل مرتبة في كل مكان في الموقع (البحث، الرواتب، الفورمات...).
 export function subscribeWorkers(cb) {
-  return onSnapshot(collection(db, "workers"), (snap) => cb(docsFromSnap(snap)));
+  return onSnapshot(collection(db, "workers"), (snap) =>
+    cb(sortByName(docsFromSnap(snap)))
+  );
 }
 
 export function addWorker({ name, wage }) {

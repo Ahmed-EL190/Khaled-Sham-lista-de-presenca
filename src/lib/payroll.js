@@ -101,5 +101,7 @@ export function buildPayrollSummaries(workers, records, deductions, expenses, sc
     b.net = b.gross - b.deductionsTotal - b.expensesTotal - b.inss;
   }
 
-  return Object.values(byWorker).sort((a, b) => b.net - a.net);
+  return Object.values(byWorker).sort((a, b) =>
+    (a.name || "").localeCompare(b.name || "", ["ar", "en"], { sensitivity: "base" })
+  );
 }
