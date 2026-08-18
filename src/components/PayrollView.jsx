@@ -21,6 +21,9 @@ export default function PayrollView({
   onAddDeduction,
   onRemoveDeduction,
   onUpdateDeduction,
+  onAddExpense,
+  onRemoveExpense,
+  onUpdateExpense,
 }) {
   const [editingId, setEditingId] = useState(null);
   const [editAmount, setEditAmount] = useState("");
@@ -37,6 +40,23 @@ export default function PayrollView({
     }
     setEditingId(null);
   }
+
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
+  const [editExpenseAmount, setEditExpenseAmount] = useState("");
+
+  function startEditExpense(item) {
+    setEditingExpenseId(item.id);
+    setEditExpenseAmount(item.amount);
+  }
+
+  function saveEditExpense(item) {
+    const num = Number(editExpenseAmount);
+    if (!Number.isNaN(num) && num !== Number(item.amount) && onUpdateExpense) {
+      onUpdateExpense(item.id, { amount: num });
+    }
+    setEditingExpenseId(null);
+  }
+
   const monthKeys = useMemo(() => {
     const set = new Set([
       ...records.map((r) => r.dateKey?.slice(0, 7)),
@@ -108,6 +128,27 @@ export default function PayrollView({
     });
     setFormAmount("");
     setFormReason("");
+  }
+
+  // ---- add expense form ----
+  const [formExpenseWorkerId, setFormExpenseWorkerId] = useState(workers[0]?.id || "");
+  const [formExpenseAmount, setFormExpenseAmount] = useState("");
+  const [formExpenseReason, setFormExpenseReason] = useState("");
+  const [formExpenseDate, setFormExpenseDate] = useState(todayKey());
+
+  function submitExpense(e) {
+    e.preventDefault();
+    const worker = workers.find((w) => w.id === formExpenseWorkerId);
+    if (!worker || !formExpenseAmount || !onAddExpense) return;
+    onAddExpense({
+      workerId: worker.id,
+      workerName: worker.name,
+      dateKey: formExpenseDate,
+      amount: formExpenseAmount,
+      reason: formExpenseReason,
+    });
+    setFormExpenseAmount("");
+    setFormExpenseReason("");
   }
 
   return (
@@ -385,6 +426,129 @@ export default function PayrollView({
                     >
                       حذف
                     </button>
+                  </div>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Add expense */}
+      <div className="rounded-xl border border-line bg-white p-4">
+        <h3 className="text-sm font-bold text-ink">تسجيل مصروف / سلفة</h3>
+        <form onSubmit={submitExpense} className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2">
+          <div className="flex w-full flex-col gap-1 sm:w-44">
+            <label className="text-[11px] text-out">العامل</label>
+            <select
+              value={formExpenseWorkerId}
+              onChange={(e) => setFormExpenseWorkerId(e.target.value)}
+              className="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+            >
+              {workers.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex w-full flex-col gap-1 sm:w-36">
+            <label className="text-[11px] text-out">التاريخ</label>
+            <input
+              type="date"
+              value={formExpenseDate}
+              onChange={(e) => setFormExpenseDate(e.target.value)}
+              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+            />
+          </div>
+          <div className="flex w-full flex-col gap-1 sm:w-24">
+            <label className="text-[11px] text-out">المبلغ (Kz)</label>
+            <input
+              type="number"
+              value={formExpenseAmount}
+              onChange={(e) => setFormExpenseAmount(e.target.value)}
+              placeholder="0"
+              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+            />
+          </div>
+          <div className="flex w-full flex-1 flex-col gap-1 sm:min-w-40">
+            <label className="text-[11px] text-out">السبب (اختياري)</label>
+            <input
+              value={formExpenseReason}
+              onChange={(e) => setFormExpenseReason(e.target.value)}
+              placeholder="مثلاً: سلفة"
+              className="w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink-soft sm:w-auto"
+          >
+            تسجيل
+          </button>
+        </form>
+      </div>
+
+      {/* Expenses list */}
+      {filteredExpenses.length > 0 && (
+        <div className="rounded-xl border border-line bg-white p-4">
+          <h3 className="text-sm font-bold text-ink">مصروفات الشهر ده</h3>
+          <ul className="mt-2 flex flex-col divide-y divide-line">
+            {filteredExpenses
+              .slice()
+              .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1))
+              .map((item) => (
+                <li key={item.id} className="flex items-center justify-between py-2 text-sm">
+                  <div>
+                    <p className="font-medium text-ink">
+                      {item.workerName} <span className="text-out">— {formatDateLong(item.dateKey)}</span>
+                    </p>
+                    <p className="text-xs text-out">
+                      {item.reason && <span>{item.reason}</span>}
+                      {item.reason && item.siteName && <span> · </span>}
+                      {item.siteName && (
+                        <span className="font-semibold text-steel">سجّله: {item.siteName}</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {editingExpenseId === item.id ? (
+                      <>
+                        <input
+                          autoFocus
+                          type="number"
+                          value={editExpenseAmount}
+                          onChange={(e) => setEditExpenseAmount(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEditExpense(item);
+                            if (e.key === "Escape") setEditingExpenseId(null);
+                          }}
+                          className="tabular w-20 rounded-lg border border-steel bg-white px-2 py-1 text-sm text-ink outline-none"
+                        />
+                        <button
+                          onClick={() => saveEditExpense(item)}
+                          className="rounded-md px-2 py-1 text-xs font-semibold text-in hover:bg-page"
+                        >
+                          حفظ
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => startEditExpense(item)}
+                        disabled={!onUpdateExpense}
+                        title="دوس تعدل المبلغ"
+                        className="tabular font-bold text-orange-600 hover:underline disabled:no-underline"
+                      >
+                        -{money(item.amount)}
+                      </button>
+                    )}
+                    {onRemoveExpense && (
+                      <button
+                        onClick={() => onRemoveExpense(item.id)}
+                        className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
+                      >
+                        حذف
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}

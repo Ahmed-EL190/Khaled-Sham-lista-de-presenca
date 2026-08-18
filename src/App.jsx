@@ -393,8 +393,17 @@ export default function App() {
                 siteName: session.siteName,
               })
             }
-            onRemoveDeduction={removeDeduction}
+                        onRemoveDeduction={removeDeduction}
             onUpdateDeduction={updateDeduction}
+            onAddExpense={(e) =>
+              addExpense({
+                ...e,
+                siteId: session.siteId,
+                siteName: session.siteName,
+              })
+            }
+            onRemoveExpense={removeExpense}
+            onUpdateExpense={updateExpense}
           />
         )}
 
