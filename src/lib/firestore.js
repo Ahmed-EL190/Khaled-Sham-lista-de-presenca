@@ -51,8 +51,13 @@ export function subscribeWorkers(cb) {
   );
 }
 
-export function addWorker({ name, wage }) {
-  return addDoc(collection(db, "workers"), { name, wage: Number(wage) || 0 });
+export function addWorker({ name, wage, almoco }) {
+  return addDoc(collection(db, "workers"), {
+    name,
+    wage: Number(wage) || 0,
+    almoco: Number(almoco) || 0,
+    hasInss: false,
+  });
 }
 
 export function updateWorker(id, patch) {

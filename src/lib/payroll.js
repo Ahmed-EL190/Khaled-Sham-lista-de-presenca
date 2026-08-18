@@ -3,105 +3,188 @@
 export function dayType(dateKey, schedule) {
   const [y, m, d] = dateKey.split("-").map(Number);
   const weekday = new Date(y, m - 1, d).getDay();
+
   if (schedule.offDays?.includes(weekday)) return "off";
   if (schedule.halfDays?.includes(weekday)) return "half";
+
   return "full";
 }
 
-// المرتب اللي بيتحط لكل عامل هو المرتب الإجمالي الشهري، واليومية بتتحسب منه أوتوماتيك بقسمته على 30 يوم.
 const DAYS_IN_MONTH = 30;
-
-// الشهر بيتحسب دايمًا 30 يوم = 4 أسابيع بالظبط (مش بتاريخ الشهر الحقيقي)،
-// فأيام الإجازة الأسبوعية (يوم الأحد وكدا) بتتحسب: عدد أيام الإجازة في الأسبوع الواحد × 4.
-// يعني لو الأحد بس هو الإجازة → 1 × 4 = 4 أيام كل شهر، ثابتة، مهما كان الشهر فيه كام يوم فعليًا.
 const WEEKS_PER_MONTH = 4;
 
-// بيحسب عدد أيام الإجازة الرسمية المدفوعة في الشهر، على حسب جدول الإجازات (schedule.offDays).
-// الأيام دي هتتحسب في المرتب كأن العامل حضرها عادي، من غير ما تتسجل ليه حضور فيها.
+// عدد أيام الإجازة الأسبوعية المدفوعة
 export function countScheduledOffDaysInMonth(schedule) {
   const offDaysPerWeek = schedule?.offDays?.length || 0;
   return offDaysPerWeek * WEEKS_PER_MONTH;
 }
 
-// نسبة الضمان الاجتماعي (INSS) اللي بتتخصم من مرتب العمال المسجلين فيه بس — بتتحسب على المرتب الشهري الكامل.
+// الضمان الاجتماعي = 3% من المرتب الأساسي فقط
 const INSS_RATE = 0.03;
 
 export function dailyWageFromMonthly(monthlyWage) {
-  return (monthlyWage || 0) / DAYS_IN_MONTH;
+  return (Number(monthlyWage) || 0) / DAYS_IN_MONTH;
 }
 
-function emptyBucket(workerId, name, monthlyWage, hasInss) {
+function emptyBucket(workerId, name, basicSalary, hasInss, almoco) {
   return {
     workerId,
     name,
-    monthlyWage,
-    dailyWage: dailyWageFromMonthly(monthlyWage),
+
+    // المرتب الأساسي
+    basicSalary: Number(basicSalary) || 0,
+
+    // نخلي monthlyWage موجود للتوافق مع أي جزء قديم في البرنامج
+    monthlyWage: Number(basicSalary) || 0,
+
+    dailyWage: dailyWageFromMonthly(basicSalary),
+
+    // Almoco بدل أكل شهري منفصل
+    almoco: Number(almoco) || 0,
+
     hasInss: !!hasInss,
+
     fullDays: 0,
     halfDays: 0,
     offDaysWorked: 0,
     paidHolidayDays: 0,
+
+    // قيمة الأساسي المستحقة حسب الحضور
     gross: 0,
+
+    // الخصومات
     deductionsTotal: 0,
+
+    // السلف / المصروفات
     expensesTotal: 0,
+
+    // الضمان الاجتماعي
     inss: 0,
+
+    // الإجمالي قبل الخصومات
+    totalBeforeDeductions: 0,
+
+    // الصافي
     net: 0,
   };
 }
 
-// Build a payroll summary per worker for a given (already date-filtered) set of records,
-// deductions, and expenses (advances the worker already took — both reduce net pay).
-export function buildPayrollSummaries(workers, records, deductions, expenses, schedule) {
+// Build payroll summary per worker
+export function buildPayrollSummaries(
+  workers,
+  records,
+  deductions,
+  expenses,
+  schedule
+) {
   const byWorker = {};
   const scheduledOffDays = countScheduledOffDaysInMonth(schedule);
+
   for (const w of workers) {
-    byWorker[w.id] = emptyBucket(w.id, w.name, w.wage || 0, w.hasInss);
+    byWorker[w.id] = emptyBucket(
+      w.id,
+      w.name,
+      w.wage || 0,
+      w.hasInss,
+      w.almoco || 0
+    );
   }
 
+  // Attendance
   for (const r of records) {
     if (!r.checkIn) continue;
+
     if (!byWorker[r.workerId]) {
-      byWorker[r.workerId] = emptyBucket(r.workerId, r.workerName || "عامل سابق", 0, false);
+      byWorker[r.workerId] = emptyBucket(
+        r.workerId,
+        r.workerName || "عامل سابق",
+        0,
+        false,
+        0
+      );
     }
+
     const bucket = byWorker[r.workerId];
     const type = dayType(r.dateKey, schedule);
-    if (type === "half") bucket.halfDays += 1;
-    else if (type === "off") bucket.offDaysWorked += 1;
-    else bucket.fullDays += 1;
+
+    if (type === "half") {
+      bucket.halfDays += 1;
+    } else if (type === "off") {
+      bucket.offDaysWorked += 1;
+    } else {
+      bucket.fullDays += 1;
+    }
   }
 
+  // Deductions
   for (const d of deductions) {
     if (!byWorker[d.workerId]) {
-      byWorker[d.workerId] = emptyBucket(d.workerId, d.workerName || "عامل سابق", 0, false);
+      byWorker[d.workerId] = emptyBucket(
+        d.workerId,
+        d.workerName || "عامل سابق",
+        0,
+        false,
+        0
+      );
     }
-    byWorker[d.workerId].deductionsTotal += d.amount || 0;
+
+    byWorker[d.workerId].deductionsTotal += Number(d.amount) || 0;
   }
 
+  // Expenses / Advances
   for (const e of expenses) {
     if (!byWorker[e.workerId]) {
-      byWorker[e.workerId] = emptyBucket(e.workerId, e.workerName || "عامل سابق", 0, false);
+      byWorker[e.workerId] = emptyBucket(
+        e.workerId,
+        e.workerName || "عامل سابق",
+        0,
+        false,
+        0
+      );
     }
-    byWorker[e.workerId].expensesTotal += e.amount || 0;
+
+    byWorker[e.workerId].expensesTotal += Number(e.amount) || 0;
   }
 
+  // Final calculations
   for (const b of Object.values(byWorker)) {
-    // العامل بيتحسبله أيام الأجازة الرسمية (يوم الأحد وكدا) في المرتب أوتوماتيك، حتى لو مسجلش حضور فيها،
-    // بشرط يكون شغال فعلاً في الشهر ده (يعني عنده أيام حضور حقيقية مسجلة، مش عامل مضاف بس).
-    const wasActiveThisMonth = b.fullDays + b.halfDays + b.offDaysWorked > 0;
-    b.paidHolidayDays = wasActiveThisMonth ? scheduledOffDays : 0;
+    const wasActiveThisMonth =
+      b.fullDays + b.halfDays + b.offDaysWorked > 0;
 
-    // off-days-worked are paid as full days (a bonus/overtime day)
+    b.paidHolidayDays = wasActiveThisMonth
+      ? scheduledOffDays
+      : 0;
+
+    // الأساسي المستحق حسب الحضور
     b.gross =
       b.fullDays * b.dailyWage +
       b.halfDays * (b.dailyWage / 2) +
       b.offDaysWorked * b.dailyWage +
       b.paidHolidayDays * b.dailyWage;
-    // الضمان الاجتماعي ثابت على المرتب الشهري الكامل، مش على أيام الحضور
-    b.inss = b.hasInss ? b.monthlyWage * INSS_RATE : 0;
-    b.net = b.gross - b.deductionsTotal - b.expensesTotal - b.inss;
+
+    // الضمان الاجتماعي يتحسب على الأساسي فقط
+    // وليس على Almoco
+    b.inss = b.hasInss
+      ? b.basicSalary * INSS_RATE
+      : 0;
+
+    // الأساسي + بدل الأكل
+    b.totalBeforeDeductions =
+      b.gross + b.almoco;
+
+    // الصافي
+    b.net =
+      b.totalBeforeDeductions -
+      b.deductionsTotal -
+      b.expensesTotal -
+      b.inss;
   }
 
   return Object.values(byWorker).sort((a, b) =>
-    (a.name || "").localeCompare(b.name || "", ["ar", "en"], { sensitivity: "base" })
+    (a.name || "").localeCompare(
+      b.name || "",
+      ["ar", "en"],
+      { sensitivity: "base" }
+    )
   );
 }

@@ -121,7 +121,7 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, session, scopeSiteId, today, isOwner]);
-    // انصراف تلقائي بعد الساعة 5:30 مساءً لأي عامل حضر ونسي يعمل انصراف.
+  // انصراف تلقائي بعد الساعة 5:30 مساءً لأي عامل حضر ونسي يعمل انصراف.
   // بيتفحص فور فتح الموقع، وبعدين كل دقيقة، طول ما الموقع فاتح عند حد.
   useEffect(() => {
     if (!authed || !session) return;
@@ -136,7 +136,11 @@ export default function App() {
       todayRecords
         .filter((r) => r.checkIn && !r.checkOut)
         .forEach((r) => {
-          autoPunchOut({ dateKey: today, workerId: r.workerId, checkOutAt: cutoffIso });
+          autoPunchOut({
+            dateKey: today,
+            workerId: r.workerId,
+            checkOutAt: cutoffIso,
+          });
         });
     }
 
@@ -151,14 +155,18 @@ export default function App() {
     return map;
   }, [todayRecords]);
 
-  const presentCount = todayRecords.filter((r) => r.checkIn && !r.checkOut).length;
+  const presentCount = todayRecords.filter(
+    (r) => r.checkIn && !r.checkOut,
+  ).length;
 
   const filteredWorkers = useMemo(
     () =>
       workers.filter(
-        (w) => !searchTerm || w.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (w) =>
+          !searchTerm ||
+          w.name.toLowerCase().includes(searchTerm.toLowerCase()),
       ),
-    [workers, searchTerm]
+    [workers, searchTerm],
   );
 
   function handleLogin(newSession) {
@@ -244,7 +252,8 @@ export default function App() {
   const pendingWorkers = workers
     .filter((w) => !todayRecords.some((r) => r.workerId === w.id))
     .filter(
-      (w) => !searchTerm || w.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (w) =>
+        !searchTerm || w.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
   return (
@@ -349,9 +358,13 @@ export default function App() {
                 .filter(
                   (r) =>
                     !searchTerm ||
-                    (r.workerName || "").toLowerCase().includes(searchTerm.toLowerCase())
+                    (r.workerName || "")
+                      .toLowerCase()
+                      .includes(searchTerm.toLowerCase()),
                 );
-              const sitePresent = siteRecords.filter((r) => r.checkIn && !r.checkOut).length;
+              const sitePresent = siteRecords.filter(
+                (r) => r.checkIn && !r.checkOut,
+              ).length;
               return (
                 <div key={site.id}>
                   <div className="mb-2 flex items-center justify-between">
@@ -382,7 +395,9 @@ export default function App() {
 
             {pendingWorkers.length > 0 && (
               <div>
-                <h2 className="mb-2 text-sm font-bold text-ink">لسه ما جوش النهاردة</h2>
+                <h2 className="mb-2 text-sm font-bold text-ink">
+                  لسه ما جوش النهاردة
+                </h2>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                   {pendingWorkers.map((w) => (
                     <WorkerCard key={w.id} worker={w} entry={null} readOnly />
@@ -393,12 +408,22 @@ export default function App() {
           </div>
         )}
 
-        {tab === "history" && <HistoryView records={allRecords} todayKey={today} onDelete={({ dateKey, workerId }) => deleteRecord({ dateKey, workerId })} />}
+        {tab === "history" && (
+          <HistoryView
+            records={allRecords}
+            todayKey={today}
+            onDelete={({ dateKey, workerId }) =>
+              deleteRecord({ dateKey, workerId })
+            }
+          />
+        )}
 
         {tab === "reports" && (
           <ReportsView
             workers={workers}
-            sites={isOwner ? sites : [{ id: session.siteId, name: session.siteName }]}
+            sites={
+              isOwner ? sites : [{ id: session.siteId, name: session.siteName }]
+            }
             records={allRecords}
             deductions={deductions}
             expenses={expenses}
@@ -410,7 +435,7 @@ export default function App() {
         )}
 
         {tab === "payroll" && isOwner && (
-                    <PayrollView
+          <PayrollView
             workers={workers}
             records={allRecords}
             deductions={deductions}
@@ -488,7 +513,7 @@ export default function App() {
             </div>
             <OwnerWorkersManager
               workers={workers}
-              onAdd={(name, wage) => addWorker({ name, wage })}
+              onAdd={(name, wage, almoco) => addWorker({ name, wage, almoco })}
               onRemove={removeWorker}
               onPurge={purgeWorker}
               onUpdate={updateWorker}
