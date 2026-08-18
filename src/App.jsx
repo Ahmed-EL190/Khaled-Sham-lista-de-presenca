@@ -10,6 +10,7 @@ import ScheduleManager from "./components/ScheduleManager";
 import HistoryView from "./components/HistoryView";
 import ReportsView from "./components/ReportsView";
 import PayrollView from "./components/PayrollView";
+import LogsView from "./components/LogsView";
 import DeductionForm from "./components/DeductionForm";
 import ExpenseForm from "./components/ExpenseForm";
 import LateAttendanceForm from "./components/LateAttendanceForm";
@@ -60,6 +61,7 @@ const OWNER_TABS = [
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
   { id: "payroll", label: "الرواتب" },
+  { id: "logs", label: "الخصومات والمصروفات" },
   { id: "manage", label: "الإدارة" },
 ];
 
@@ -393,7 +395,7 @@ export default function App() {
                 siteName: session.siteName,
               })
             }
-                        onRemoveDeduction={removeDeduction}
+            onRemoveDeduction={removeDeduction}
             onUpdateDeduction={updateDeduction}
             onAddExpense={(e) =>
               addExpense({
@@ -402,6 +404,17 @@ export default function App() {
                 siteName: session.siteName,
               })
             }
+            onRemoveExpense={removeExpense}
+            onUpdateExpense={updateExpense}
+          />
+        )}
+
+        {tab === "logs" && isOwner && (
+          <LogsView
+            deductions={deductions}
+            expenses={expenses}
+            onRemoveDeduction={removeDeduction}
+            onUpdateDeduction={updateDeduction}
             onRemoveExpense={removeExpense}
             onUpdateExpense={updateExpense}
           />
