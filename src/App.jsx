@@ -45,6 +45,9 @@ import {
   removeExpense,
   updateExpense,
   addLateRecord,
+  subscribePayments,
+  markSalaryPaid,
+  markSalaryUnpaid,
 } from "./lib/firestore";
 
 // انصراف تلقائي: أي حد نسي يعمل انصراف بيتسجله الموقع أوتوماتيك بعد الساعة دي.
@@ -80,6 +83,7 @@ export default function App() {
   const [schedule, setSchedule] = useState({ offDays: [0], halfDays: [6] });
   const [deductions, setDeductions] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [tab, setTab] = useState("today");
   const [search, setSearch] = useState("");
   const [pendingWorkerId, setPendingWorkerId] = useState(null);
@@ -112,12 +116,14 @@ export default function App() {
     const unsubAll = subscribeAllRecords(scopeSiteId, setAllRecords);
     const unsubDeductions = subscribeDeductions(scopeSiteId, setDeductions);
     const unsubExpenses = subscribeExpenses(scopeSiteId, setExpenses);
+    const unsubPayments = subscribePayments(setPayments);
     return () => {
       unsubWorkers();
       unsubToday();
       unsubAll();
       unsubDeductions();
       unsubExpenses();
+      unsubPayments();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, session, scopeSiteId, today, isOwner]);
@@ -441,6 +447,9 @@ export default function App() {
             deductions={deductions}
             expenses={expenses}
             schedule={schedule}
+            payments={payments}
+            onMarkPaid={markSalaryPaid}
+            onMarkUnpaid={markSalaryUnpaid}
           />
         )}
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { buildPayrollSummaries } from "../lib/payroll";
-import { formatMonthLabel, todayKey } from "../lib/format";
+import { formatMonthLabel, formatTime, todayKey } from "../lib/format";
 import PayslipModal from "./PayslipModal";
 import PayrollAllSlipModal from "./PayrollAllSlipModal";
 
@@ -12,7 +12,24 @@ function money(n) {
   return `${(n || 0).toLocaleString("en-US")} Kz`;
 }
 
-export default function PayrollView({ workers, records, deductions, expenses, schedule }) {
+// تاريخ + وقت الاستلام لعرضه جنب علامة "اتصرف"
+function formatPaidAt(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("ar-EG-u-nu-latn", { day: "numeric", month: "short" });
+  return `${date} - ${formatTime(iso)}`;
+}
+
+export default function PayrollView({
+  workers,
+  records,
+  deductions,
+  expenses,
+  schedule,
+  payments = [],
+  onMarkPaid,
+  onMarkUnpaid,
+}) {
   const monthKeys = useMemo(() => {
     const set = new Set([
       ...records.map((r) => r.dateKey?.slice(0, 7)),
@@ -50,8 +67,32 @@ export default function PayrollView({ workers, records, deductions, expenses, sc
     [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule]
   );
 
+  // ---- من استلم مرتبه في الشهر المختار ----
+  const paidMap = useMemo(() => {
+    const map = {};
+    for (const p of payments) {
+      if (p.monthKey === selectedMonth) map[p.workerId] = p;
+    }
+    return map;
+  }, [payments, selectedMonth]);
+
+  function togglePaid(s) {
+    const existing = paidMap[s.workerId];
+    if (existing) {
+      onMarkUnpaid?.({ monthKey: selectedMonth, workerId: s.workerId });
+    } else {
+      onMarkPaid?.({
+        monthKey: selectedMonth,
+        workerId: s.workerId,
+        workerName: s.name,
+        amount: s.net,
+      });
+    }
+  }
+
   // ---- search + accordion state ----
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // all | paid | unpaid
   const [expandedIds, setExpandedIds] = useState(new Set());
 
   function toggleWorker(id) {
@@ -65,9 +106,14 @@ export default function PayrollView({ workers, records, deductions, expenses, sc
 
   const filteredSummaries = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return summaries;
-    return summaries.filter((s) => (s.name || "").toLowerCase().includes(q));
-  }, [summaries, search]);
+    return summaries
+      .filter((s) => !q || (s.name || "").toLowerCase().includes(q))
+      .filter((s) => {
+        if (statusFilter === "paid") return !!paidMap[s.workerId];
+        if (statusFilter === "unpaid") return !paidMap[s.workerId];
+        return true;
+      });
+  }, [summaries, search, statusFilter, paidMap]);
 
   function expandAll() {
     setExpandedIds(new Set(filteredSummaries.map((s) => s.workerId)));
@@ -85,11 +131,17 @@ export default function PayrollView({ workers, records, deductions, expenses, sc
           acc.expenses += s.expensesTotal || 0;
           acc.inss += s.hasInss ? s.inss || 0 : 0;
           acc.net += s.net || 0;
+          if (paidMap[s.workerId]) {
+            acc.paidCount += 1;
+            acc.paidNet += s.net || 0;
+          } else {
+            acc.unpaidCount += 1;
+          }
           return acc;
         },
-        { gross: 0, deductions: 0, expenses: 0, inss: 0, net: 0 }
+        { gross: 0, deductions: 0, expenses: 0, inss: 0, net: 0, paidCount: 0, paidNet: 0, unpaidCount: 0 }
       ),
-    [filteredSummaries]
+    [filteredSummaries, paidMap]
   );
 
   // ---- single payslip modal ----
@@ -171,6 +223,15 @@ export default function PayrollView({ workers, records, deductions, expenses, sc
                 </button>
               )}
             </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-steel outline-none focus:border-steel"
+            >
+              <option value="all">الكل</option>
+              <option value="paid">اتصرف</option>
+              <option value="unpaid">لسه ما اتصرفش</option>
+            </select>
             <button
               onClick={expandAll}
               className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-steel hover:bg-mist"
@@ -186,10 +247,16 @@ export default function PayrollView({ workers, records, deductions, expenses, sc
           </div>
 
           {/* Summary totals */}
-          <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-white p-4 sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-white p-4 sm:grid-cols-6">
             <div>
               <p className="text-[11px] text-out">الإجمالي المستحق</p>
               <p className="tabular mt-0.5 text-base font-bold text-ink">{money(totals.gross)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-out">اتصرف</p>
+              <p className="tabular mt-0.5 text-base font-bold text-emerald-600">
+                {totals.paidCount} / {filteredSummaries.length}
+              </p>
             </div>
             <div>
               <p className="text-[11px] text-out">الخصومات</p>
@@ -246,6 +313,15 @@ export default function PayrollView({ workers, records, deductions, expenses, sc
                           <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         <p className="truncate text-base font-bold text-ink">{s.name}</p>
+                        {paidMap[s.workerId] ? (
+                          <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            اتصرف ✓
+                          </span>
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                            لسه
+                          </span>
+                        )}
                       </div>
                       <span className="tabular shrink-0 text-lg font-black text-ink">
                         {money(s.net)}
@@ -310,12 +386,36 @@ export default function PayrollView({ workers, records, deductions, expenses, sc
                             </div>
                           )}
                         </div>
-                        <button
-                          onClick={() => setPayslipWorkerId(s.workerId)}
-                          className="mt-3 w-full rounded-lg border border-line py-2 text-xs font-semibold text-steel hover:bg-mist sm:w-auto sm:px-6"
-                        >
-                          كشف / PDF
-                        </button>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => setPayslipWorkerId(s.workerId)}
+                            className="rounded-lg border border-line py-2 text-xs font-semibold text-steel hover:bg-mist sm:px-6"
+                          >
+                            كشف / PDF
+                          </button>
+
+                          {paidMap[s.workerId] ? (
+                            <button
+                              onClick={() => togglePaid(s)}
+                              className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                              title="دوس عشان ترجع تعتبره لسه ما استلمش"
+                            >
+                              اتصرف ✓
+                              {paidMap[s.workerId].paidAt && (
+                                <span className="font-normal text-emerald-600/80">
+                                  ({formatPaidAt(paidMap[s.workerId].paidAt)})
+                                </span>
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => togglePaid(s)}
+                              className="rounded-lg bg-ink px-3 py-2 text-xs font-semibold text-white hover:bg-ink/90"
+                            >
+                              اتصرف؟ سجّل إنه استلم مرتبه
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

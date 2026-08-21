@@ -215,6 +215,31 @@ export function removeExpense(id) {
   return deleteDoc(doc(db, "expenses", id));
 }
 
+// ---------- Payments (تأكيد إن العامل استلم مرتبه فعلاً) ----------
+// doc id = `${monthKey}__${workerId}` عشان يكون upsert بسيط زي الحضور بالظبط.
+function paymentId(monthKey, workerId) {
+  return `${monthKey}__${workerId}`;
+}
+
+export function subscribePayments(cb) {
+  return onSnapshot(collection(db, "payments"), (snap) => cb(docsFromSnap(snap)));
+}
+
+export function markSalaryPaid({ monthKey, workerId, workerName, amount }) {
+  return setDoc(doc(db, "payments", paymentId(monthKey, workerId)), {
+    monthKey,
+    workerId,
+    workerName: workerName || "",
+    amount: Number(amount) || 0,
+    paid: true,
+    paidAt: new Date().toISOString(),
+  });
+}
+
+export function markSalaryUnpaid({ monthKey, workerId }) {
+  return deleteDoc(doc(db, "payments", paymentId(monthKey, workerId)));
+}
+
 // ---------- Purge (delete worker + ALL their history everywhere) ----------
 export async function purgeWorker(workerId) {
   const recordsQ = query(collection(db, "records"), where("workerId", "==", workerId));
