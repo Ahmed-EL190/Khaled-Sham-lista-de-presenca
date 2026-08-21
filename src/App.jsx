@@ -87,6 +87,7 @@ export default function App() {
   const [tab, setTab] = useState("today");
   const [search, setSearch] = useState("");
   const [pendingWorkerId, setPendingWorkerId] = useState(null);
+  const [checkoutMode, setCheckoutMode] = useState(false);
 
   const today = todayKey();
   const isOwner = session?.role === "owner";
@@ -175,14 +176,35 @@ export default function App() {
     [workers, searchTerm],
   );
 
+  // ---- وضع الانصراف: بس العمال اللي سجلوا حضور في ورشة الفورمان النهاردة ولسه ما خرجوش ----
+  const presentAtMySite = useMemo(
+    () =>
+      todayRecords.filter(
+        (r) => r.siteId === scopeSiteId && r.checkIn && !r.checkOut,
+      ),
+    [todayRecords, scopeSiteId],
+  );
+
+  const filteredPresentAtMySite = useMemo(
+    () =>
+      presentAtMySite.filter(
+        (r) =>
+          !searchTerm ||
+          (r.workerName || "").toLowerCase().includes(searchTerm.toLowerCase()),
+      ),
+    [presentAtMySite, searchTerm],
+  );
+
   function handleLogin(newSession) {
     setSession(newSession);
     setTab(newSession.role === "owner" ? "dashboard" : "today");
     setSearch("");
+    setCheckoutMode(false);
   }
 
   function handleLogout() {
     setSession(null);
+    setCheckoutMode(false);
   }
 
   function handlePunch(workerId) {
@@ -313,13 +335,56 @@ export default function App() {
 
         {tab === "today" && !isOwner && (
           <>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="دور على اسم عامل..."
-              className="mb-4 w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs"
-            />
-            {workers.length === 0 ? (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="دور على اسم عامل..."
+                className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs"
+              />
+              <div className="flex rounded-lg border border-line bg-white p-1">
+                <button
+                  onClick={() => setCheckoutMode(false)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
+                    !checkoutMode ? "bg-ink text-white" : "text-out hover:text-ink"
+                  }`}
+                >
+                  الكل
+                </button>
+                <button
+                  onClick={() => setCheckoutMode(true)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
+                    checkoutMode ? "bg-ink text-white" : "text-out hover:text-ink"
+                  }`}
+                >
+                  انصراف ({presentAtMySite.length})
+                </button>
+              </div>
+            </div>
+
+            {checkoutMode ? (
+              presentAtMySite.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+                  مفيش حد لسه في الورشة محتاج انصراف
+                </div>
+              ) : filteredPresentAtMySite.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+                  مفيش عامل بالاسم ده
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                  {filteredPresentAtMySite.map((r) => (
+                    <WorkerCard
+                      key={r.workerId}
+                      worker={{ id: r.workerId, name: r.workerName }}
+                      entry={r}
+                      onPunch={handlePunch}
+                      onReset={handleReset}
+                    />
+                  ))}
+                </div>
+              )
+            ) : workers.length === 0 ? (
               <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
                 لسه مفيش عمال متضافين، كلم صاحب الشركة يضيفهم
               </div>
