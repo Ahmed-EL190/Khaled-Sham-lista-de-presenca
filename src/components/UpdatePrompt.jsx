@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 // بيسجل الـ Service Worker ويظبط تحديثات التطبيق.
 // مهم: مابنعملش ريفريش تلقائي فجأة، عشان لو حد بيسجل حضور دلوقتي مانضيعوش
-// عليه اللي بيعمله. بدل كده بنوريه رسالة صغيرة وهو يختار يحدّث إمتى.
+// عليه اللي بيعمله. بدل كده بنوريه رسالة وهو يختار يحدّث إمتى — لكن الرسالة
+// دي بتفضل تظهر تاني كل مرة يفتح فيها الموقع (حتى لو داس "لاحقًا" قبل كده)
+// لحد ما يعمل التحديث فعليًا.
 export default function UpdatePrompt() {
   const [updating, setUpdating] = useState(false);
 
@@ -13,16 +15,41 @@ export default function UpdatePrompt() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(swUrl, registration) {
-      // بنتأكد كل نص ساعة إن مفيش نسخة جديدة من التطبيق، من غير ما نضايق المستخدم
-      if (registration) {
-        setInterval(() => {
+      if (!registration) return;
+
+      // 1) فحص فوري أول ما الموقع يفتح ويتسجل الـ Service Worker،
+      //    من غير ما نستنى أي فترة زمنية.
+      registration.update().catch(() => {});
+
+      // 2) فحص تاني كل مرة المستخدم يرجع للتاب/الموقع (بعد ما كان
+      //    مقفول في الخلفية أو مبدّل تطبيق تاني)، عشان نمسكه أول لحظة
+      //    يفتح فيها الموقع من جديد.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
           registration.update().catch(() => {});
-        }, 30 * 60 * 1000);
-      }
+        }
+      });
+
+      // 3) وفحص دوري احتياطي كل نص ساعة لو الموقع فاضل فاتح فترة طويلة.
+      setInterval(() => {
+        registration.update().catch(() => {});
+      }, 30 * 60 * 1000);
     },
   });
 
+  // لو المستخدم داس "لاحقًا" والموقع لسه محتاج تحديث، نفضّل نفكّره تاني
+  // كل شوية من غير ما يضطر يقفل ويفتح الموقع من الأول.
+  useEffect(() => {
+    if (!needRefresh) return;
+    const reminder = setInterval(() => {
+      setNeedRefresh(true);
+    }, 5 * 60 * 1000);
+    return () => clearInterval(reminder);
+  }, [needRefresh, setNeedRefresh]);
+
   function close() {
+    // "لاحقًا" بيقفل الرسالة دلوقتي بس، مش بيلغي التحديث؛ هتظهر تاني
+    // أول ما يفتح الموقع تاني أو بعد شوية زي ما شرحنا فوق.
     setNeedRefresh(false);
     setOfflineReady(false);
   }
