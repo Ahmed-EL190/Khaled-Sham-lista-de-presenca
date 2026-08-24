@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 // بيسجل الـ Service Worker ويظبط تحديثات التطبيق.
 // مهم: مابنعملش ريفريش تلقائي فجأة، عشان لو حد بيسجل حضور دلوقتي مانضيعوش
 // عليه اللي بيعمله. بدل كده بنوريه رسالة صغيرة وهو يختار يحدّث إمتى.
 export default function UpdatePrompt() {
+  const [updating, setUpdating] = useState(false);
+
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
@@ -24,6 +27,23 @@ export default function UpdatePrompt() {
     setOfflineReady(false);
   }
 
+  async function handleUpdate() {
+    setUpdating(true);
+    // شبكة أمان: لو لأي سبب (كاش على السيرفر، متصفح غريب، إلخ) الصفحة
+    // ما عملتش ريفريش لوحدها خلال 4 ثواني من الضغط على "تحديث"، بنجبرها
+    // تعمل ريفريش يدوي إجباري بدل ما تفضل واقفة من غير أي رد فعل.
+    const fallback = setTimeout(() => {
+      window.location.reload();
+    }, 4000);
+    try {
+      await updateServiceWorker(true);
+    } catch (err) {
+      console.warn("تعذّر تحديث الـ Service Worker، هنعمل ريفريش يدوي:", err);
+      clearTimeout(fallback);
+      window.location.reload();
+    }
+  }
+
   if (!needRefresh && !offlineReady) return null;
 
   return (
@@ -36,15 +56,17 @@ export default function UpdatePrompt() {
             </span>
             <button
               type="button"
-              onClick={() => updateServiceWorker(true)}
-              className="rounded-lg bg-steel px-3 py-1.5 text-xs font-bold text-white hover:bg-steel-light"
+              onClick={handleUpdate}
+              disabled={updating}
+              className="rounded-lg bg-steel px-3 py-1.5 text-xs font-bold text-white hover:bg-steel-light disabled:opacity-60"
             >
-              تحديث
+              {updating ? "بيحدّث…" : "تحديث"}
             </button>
             <button
               type="button"
               onClick={close}
-              className="rounded-lg px-2 py-1.5 text-xs font-semibold text-out hover:bg-out-soft"
+              disabled={updating}
+              className="rounded-lg px-2 py-1.5 text-xs font-semibold text-out hover:bg-out-soft disabled:opacity-60"
             >
               لاحقًا
             </button>
