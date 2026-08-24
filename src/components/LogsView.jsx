@@ -189,7 +189,11 @@ export default function LogsView({
                   )}
                   {onRemoveDeduction && (
                     <button
-                      onClick={() => onRemoveDeduction(d.id)}
+                      onClick={() => {
+                        if (window.confirm("متأكد إنك عايز تمسح الخصم ده؟")) {
+                          onRemoveDeduction(d.id);
+                        }
+                      }}
                       className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
                     >
                       حذف
@@ -252,7 +256,11 @@ export default function LogsView({
                   )}
                   {onRemoveExpense && (
                     <button
-                      onClick={() => onRemoveExpense(item.id)}
+                      onClick={() => {
+                        if (window.confirm("متأكد إنك عايز تمسح المصروف ده؟")) {
+                          onRemoveExpense(item.id);
+                        }
+                      }}
                       className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
                     >
                       حذف

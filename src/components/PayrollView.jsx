@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { buildPayrollSummaries } from "../lib/payroll";
 import { formatMonthLabel, formatTime, todayKey } from "../lib/format";
+import { exportRowsToExcel } from "../lib/excelExport";
 import PayslipModal from "./PayslipModal";
 import PayrollAllSlipModal from "./PayrollAllSlipModal";
 
@@ -159,6 +160,29 @@ export default function PayrollView({
   // ---- all-workers payslip modal ----
   const [showAllSlip, setShowAllSlip] = useState(false);
 
+  function exportPayrollExcel() {
+    const rows = filteredSummaries.map((s) => ({
+      "الاسم": s.name,
+      "المرتب الشهري": s.monthlyWage,
+      "اليومية": roundDaily(s.dailyWage),
+      "أيام كاملة": s.fullDays,
+      "نص أيام": s.halfDays,
+      "أيام في إجازة رسمية اشتغل فيها": s.offDaysWorked,
+      "إجازات مدفوعة": s.paidHolidayDays,
+      "الإجمالي المستحق": s.gross,
+      "بدل الأكل (Almoco)": s.almoco,
+      "الخصومات": s.deductionsTotal,
+      "المصروفات/السلف": s.expensesTotal,
+      "الضمان الاجتماعي": s.hasInss ? s.inss : 0,
+      "الصافي": s.net,
+      "الحالة": paidMap[s.workerId] ? "اتصرف" : "لسه",
+      "تاريخ الاستلام": paidMap[s.workerId]?.paidAt
+        ? formatPaidAt(paidMap[s.workerId].paidAt)
+        : "",
+    }));
+    exportRowsToExcel(rows, `رواتب - ${formatMonthLabel(selectedMonth)}`, "الرواتب");
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -170,6 +194,14 @@ export default function PayrollView({
               className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-steel hover:bg-mist"
             >
               كشف كل العمال / PDF
+            </button>
+          )}
+          {filteredSummaries.length > 0 && (
+            <button
+              onClick={exportPayrollExcel}
+              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-mist"
+            >
+              تصدير Excel
             </button>
           )}
           <select

@@ -152,7 +152,11 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
                   )}
                   {onRemoveDeduction && (
                     <button
-                      onClick={() => onRemoveDeduction(d.id)}
+                      onClick={() => {
+                        if (window.confirm("متأكد إنك عايز تمسح الخصم ده؟")) {
+                          onRemoveDeduction(d.id);
+                        }
+                      }}
                       className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
                     >
                       حذف

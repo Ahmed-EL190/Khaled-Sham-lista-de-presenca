@@ -152,7 +152,11 @@ export default function ExpenseForm({ workers, expenses = [], onSubmit, onRemove
                   )}
                   {onRemoveExpense && (
                     <button
-                      onClick={() => onRemoveExpense(item.id)}
+                      onClick={() => {
+                        if (window.confirm("متأكد إنك عايز تمسح المصروف ده؟")) {
+                          onRemoveExpense(item.id);
+                        }
+                      }}
                       className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
                     >
                       حذف

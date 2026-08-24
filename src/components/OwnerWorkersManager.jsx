@@ -554,9 +554,15 @@ export default function OwnerWorkersManager({
                 </label>
 
                 <button
-                  onClick={() =>
-                    onRemove(w.id)
-                  }
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `متأكد إنك عايز تشيل "${w.name}"؟ هيوقف عن الظهور في اليوم، بس سجلاته القديمة هتفضل موجودة في السجل والتقارير.`
+                      )
+                    ) {
+                      onRemove(w.id);
+                    }
+                  }}
                   title="بيوقف عن الظهور في اليوم، وسجلاته القديمة تفضل موجودة"
                   className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
                 >

@@ -79,7 +79,11 @@ export default function SitesManager({ sites, onAdd, onRemove, onUpdate }) {
                 كود: {site.pin}
               </button>
               <button
-                onClick={() => onRemove(site.id)}
+                onClick={() => {
+                  if (window.confirm(`متأكد إنك عايز تمسح ورشة "${site.name}"؟ الخطوة دي مش هترجع.`)) {
+                    onRemove(site.id);
+                  }
+                }}
                 className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
               >
                 حذف

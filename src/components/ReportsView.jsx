@@ -2,6 +2,7 @@ import WorkerPicker from "./WorkerPicker";
 import { useMemo, useState } from "react";
 import { buildSiteDailyReports, buildWorkerSummaries } from "../lib/reports";
 import { formatMonthLabel, formatDateLong, formatDuration, formatTime, todayKey } from "../lib/format";
+import { exportSheetsToExcel } from "../lib/excelExport";
 
 function money(n) {
   return `${(n || 0).toLocaleString("en-US")} Kz`;
@@ -147,6 +148,46 @@ export default function ReportsView({
 
   const hasData = mode === "worker" ? visibleWorkerSummaries.length > 0 : visibleSiteReports.length > 0;
 
+  const periodLabel = selectedMonth === "all" ? "كل الوقت" : formatMonthLabel(selectedMonth);
+
+  function exportReportExcel() {
+    const attendanceRows = dayFilteredRecords
+      .filter((r) => r.checkIn)
+      .map((r) => ({
+        "العامل": r.workerName || "",
+        "الورشة": r.siteName || "",
+        "التاريخ": formatDateLong(r.dateKey),
+        "حضور": r.checkIn ? formatTime(r.checkIn) : "",
+        "انصراف": r.checkOut ? formatTime(r.checkOut) : "",
+        "المدة": r.checkIn && r.checkOut ? formatDuration(r.checkIn, r.checkOut) : "",
+      }));
+
+    const deductionRows = dayFilteredDeductions.map((d) => ({
+      "العامل": d.workerName || "",
+      "الورشة": d.siteName || "",
+      "التاريخ": formatDateLong(d.dateKey),
+      "المبلغ": d.amount || 0,
+      "السبب": d.reason || "",
+    }));
+
+    const expenseRows = dayFilteredExpenses.map((e) => ({
+      "العامل": e.workerName || "",
+      "الورشة": e.siteName || "",
+      "التاريخ": formatDateLong(e.dateKey),
+      "المبلغ": e.amount || 0,
+      "السبب": e.reason || "",
+    }));
+
+    exportSheetsToExcel(
+      [
+        { name: "الحضور", rows: attendanceRows },
+        { name: "الخصومات", rows: deductionRows },
+        { name: "المصروفات", rows: expenseRows },
+      ],
+      `تقرير - ${periodLabel}`
+    );
+  }
+
   function handlePurge(workerId, name) {
     const ok = window.confirm(
       `متأكد إنك عايز تمسح "${name}" نهائي؟\nهيتمسح هو (لو لسه موجود) وكل سجلات حضوره وخصوماته ومصروفاته من السجل والتقارير والرواتب، ومفيش رجعة بعد كده.`
@@ -229,6 +270,13 @@ export default function ReportsView({
               </option>
             ))}
           </select>
+
+          <button
+            onClick={exportReportExcel}
+            className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-mist"
+          >
+            تصدير Excel
+          </button>
         </div>
       </div>
 
@@ -418,7 +466,11 @@ export default function ReportsView({
                             {item.reason ? ` — ${item.reason}` : ""}
                             {onRemoveDeduction && canPurge && (
                               <button
-                                onClick={() => onRemoveDeduction(item.id)}
+                                onClick={() => {
+                                  if (window.confirm("متأكد إنك عايز تمسح الخصم ده؟")) {
+                                    onRemoveDeduction(item.id);
+                                  }
+                                }}
                                 className="text-red-400 hover:text-red-700"
                                 title="حذف"
                               >
@@ -436,7 +488,11 @@ export default function ReportsView({
                             {item.reason ? ` — ${item.reason}` : ""}
                             {onRemoveExpense && canPurge && (
                               <button
-                                onClick={() => onRemoveExpense(item.id)}
+                                onClick={() => {
+                                  if (window.confirm("متأكد إنك عايز تمسح المصروف ده؟")) {
+                                    onRemoveExpense(item.id);
+                                  }
+                                }}
                                 className="text-orange-400 hover:text-orange-700"
                                 title="حذف"
                               >
