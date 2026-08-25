@@ -1,82 +1,93 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
-// بيسجل الـ Service Worker ويظبط تحديثات التطبيق.
-// مهم: مابنعملش ريفريش تلقائي فجأة، عشان لو حد بيسجل حضور دلوقتي مانضيعوش
-// عليه اللي بيعمله. بدل كده بنوريه رسالة وهو يختار يحدّث إمتى — لكن الرسالة
-// دي بتفضل تظهر تاني كل مرة يفتح فيها الموقع (حتى لو داس "لاحقًا" قبل كده)
-// لحد ما يعمل التحديث فعليًا.
+// __APP_VERSION__ بيتحط جوه الكود وقت الـ build (شوف vite.config.js)، وده
+// رقم النسخة اللي التطبيق شغال بيها فعليًا دلوقتي في المتصفح.
+/* global __APP_VERSION__ */
+const CURRENT_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "";
+
+const CHECK_INTERVAL_MS = 60 * 1000; // كل دقيقة
+
+// الطريقة دي مستقلة تمامًا عن حالة الـ Service Worker (اللي أحيانًا بيحدّث
+// نفسه بصمت من غير ما يقولنا، أو العكس). إحنا بنسأل السيرفر بنفسنا كل دقيقة:
+// "إيه رقم آخر نسخة منشورة؟" (ملف version.json بيتقرا بكاش معطّل تمامًا)،
+// ولو مختلف عن اللي شغالين بيه، نوري رسالة وناخد المستخدم لآخر نسخة.
 export default function UpdatePrompt() {
   const [updating, setUpdating] = useState(false);
+  const [versionMismatch, setVersionMismatch] = useState(false);
+  const checkingRef = useRef(false);
 
+  // بنستخدمها بس عشان رسالة "التطبيق جاهز يشتغل من غير نت" (أول مرة بس)
   const {
-    needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegisteredSW(swUrl, registration) {
-      if (!registration) return;
+  } = useRegisterSW({});
 
-      // 1) فحص فوري أول ما الموقع يفتح ويتسجل الـ Service Worker،
-      //    من غير ما نستنى أي فترة زمنية.
-      registration.update().catch(() => {});
-
-      // 2) فحص تاني كل مرة المستخدم يرجع للتاب/الموقع (بعد ما كان
-      //    مقفول في الخلفية أو مبدّل تطبيق تاني)، عشان نمسكه أول لحظة
-      //    يفتح فيها الموقع من جديد.
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          registration.update().catch(() => {});
-        }
-      });
-
-      // 3) وفحص دوري احتياطي كل نص ساعة لو الموقع فاضل فاتح فترة طويلة.
-      setInterval(() => {
-        registration.update().catch(() => {});
-      }, 30 * 60 * 1000);
-    },
-  });
-
-  // لو المستخدم داس "لاحقًا" والموقع لسه محتاج تحديث، نفضّل نفكّره تاني
-  // كل شوية من غير ما يضطر يقفل ويفتح الموقع من الأول.
   useEffect(() => {
-    if (!needRefresh) return;
-    const reminder = setInterval(() => {
-      setNeedRefresh(true);
-    }, 5 * 60 * 1000);
-    return () => clearInterval(reminder);
-  }, [needRefresh, setNeedRefresh]);
+    if (!CURRENT_VERSION) return; // لو لأي سبب الرقم مش موجود، متعملش حاجة
 
-  function close() {
-    // "لاحقًا" بيقفل الرسالة دلوقتي بس، مش بيلغي التحديث؛ هتظهر تاني
-    // أول ما يفتح الموقع تاني أو بعد شوية زي ما شرحنا فوق.
-    setNeedRefresh(false);
-    setOfflineReady(false);
-  }
+    async function checkForUpdate() {
+      if (checkingRef.current) return;
+      checkingRef.current = true;
+      try {
+        const res = await fetch(`/version.json?t=${Date.now()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.version && data.version !== CURRENT_VERSION) {
+          setVersionMismatch(true);
+        }
+      } catch {
+        // مفيش نت أو خطأ مؤقت — هنحاول تاني في الفحص الجاي من غير ما نضايق حد
+      } finally {
+        checkingRef.current = false;
+      }
+    }
+
+    // 1) فحص فوري أول ما التطبيق يفتح
+    checkForUpdate();
+
+    // 2) فحص دوري كل دقيقة
+    const interval = setInterval(checkForUpdate, CHECK_INTERVAL_MS);
+
+    // 3) فحص فوري إضافي كل ما المستخدم يرجع للتاب بعد ما كان في الخلفية
+    function onVisible() {
+      if (document.visibilityState === "visible") checkForUpdate();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   async function handleUpdate() {
     setUpdating(true);
-    // شبكة أمان: لو لأي سبب (كاش على السيرفر، متصفح غريب، إلخ) الصفحة
-    // ما عملتش ريفريش لوحدها خلال 4 ثواني من الضغط على "تحديث"، بنجبرها
-    // تعمل ريفريش يدوي إجباري بدل ما تفضل واقفة من غير أي رد فعل.
-    const fallback = setTimeout(() => {
-      window.location.reload();
-    }, 4000);
     try {
-      await updateServiceWorker(true);
+      // بنلغي تسجيل الـ Service Worker القديم قبل الريفريش، عشان نضمن
+      // 100% إن الصفحة هتجيب آخر نسخة فعلية من السيرفر مباشرة، مش نسخة
+      // قديمة محفوظة عنده. بعد الريفريش هيتسجل Service Worker جديد
+      // تلقائي بآخر نسخة، وترجع ميزة التخزين الأوفلاين تشتغل عادي.
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((r) => r.unregister()));
     } catch (err) {
-      console.warn("تعذّر تحديث الـ Service Worker، هنعمل ريفريش يدوي:", err);
-      clearTimeout(fallback);
+      console.warn("تعذّر إلغاء تسجيل الـ Service Worker القديم:", err);
+    } finally {
       window.location.reload();
     }
   }
 
-  if (!needRefresh && !offlineReady) return null;
+  function closeOfflineReady() {
+    setOfflineReady(false);
+  }
+
+  if (!versionMismatch && !offlineReady) return null;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
       <div className="flex w-full max-w-md items-center gap-3 rounded-xl border border-line bg-white p-3 shadow-lg">
-        {needRefresh ? (
+        {versionMismatch ? (
           <>
             <span className="flex-1 text-xs font-semibold text-ink">
               🔄 في نسخة جديدة من التطبيق — حدّث دلوقتي؟
@@ -89,14 +100,6 @@ export default function UpdatePrompt() {
             >
               {updating ? "بيحدّث…" : "تحديث"}
             </button>
-            <button
-              type="button"
-              onClick={close}
-              disabled={updating}
-              className="rounded-lg px-2 py-1.5 text-xs font-semibold text-out hover:bg-out-soft disabled:opacity-60"
-            >
-              لاحقًا
-            </button>
           </>
         ) : (
           <>
@@ -105,7 +108,7 @@ export default function UpdatePrompt() {
             </span>
             <button
               type="button"
-              onClick={close}
+              onClick={closeOfflineReady}
               className="rounded-lg px-2 py-1.5 text-xs font-semibold text-out hover:bg-out-soft"
             >
               تمام

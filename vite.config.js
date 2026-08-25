@@ -3,7 +3,15 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// رقم نسخة فريد بيتولد لحظة عمل الـ build (وقت الرفع على Vercel)، مش بيتغير
+// إلا لما تعمل ديبلوي جديد. بنحطه جوه الكود نفسه (__APP_VERSION__) وكمان في
+// ملف version.json منفصل، عشان نقارن بينهم وقت الشغل (شوف VersionChecker.jsx).
+const buildVersion = String(Date.now())
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(buildVersion),
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -95,5 +103,20 @@ export default defineConfig({
         enabled: false,
       },
     }),
+    {
+      // بلجن صغير بيكتب ملف public/version.json وقت الـ build فيه نفس
+      // رقم النسخة (buildVersion) بالظبط. الملف ده بيتقرا بكاش معطّل
+      // (شوف vercel.json) عشان نقدر نقارنه برقم النسخة اللي التطبيق شغال
+      // بيه فعليًا في المتصفح، ونعرف لو فيه نسخة أحدث اتنشرت.
+      name: 'write-version-json',
+      apply: 'build',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: JSON.stringify({ version: buildVersion }),
+        })
+      },
+    },
   ],
 })
