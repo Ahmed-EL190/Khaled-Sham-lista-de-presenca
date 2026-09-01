@@ -1,6 +1,7 @@
 import WorkerPicker from "./WorkerPicker";
 import { useMemo, useState } from "react";
 import { buildSiteDailyReports, buildWorkerSummaries } from "../lib/reports";
+import { computeAbsenceDays } from "../lib/payroll";
 import { formatMonthLabel, formatDateLong, formatDuration, formatTime, todayKey } from "../lib/format";
 import { exportSheetsToExcel } from "../lib/excelExport";
 
@@ -14,6 +15,7 @@ export default function ReportsView({
   records,
   deductions = [],
   expenses = [],
+  schedule = {},
   canPurge = false,
   onPurgeWorker,
   onRemoveDeduction,
@@ -83,6 +85,17 @@ export default function ReportsView({
     () => buildWorkerSummaries(workers, dayFilteredRecords),
     [workers, dayFilteredRecords]
   );
+
+  // عدد أيام الغياب لكل عامل — بيتحسب على شهر كامل (مش على فلتر اليوم)، وبيظهر
+  // بس لما يكون فيه شهر محدد (مش "كل الوقت")
+  const workerAbsences = useMemo(() => {
+    if (selectedMonth === "all") return {};
+    const map = {};
+    for (const w of workers) {
+      map[w.id] = computeAbsenceDays(w, filteredRecords, schedule, selectedMonth).absentDays;
+    }
+    return map;
+  }, [workers, filteredRecords, schedule, selectedMonth]);
   const siteDailyReports = useMemo(
     () => buildSiteDailyReports(sites, dayFilteredRecords, dayFilteredDeductions, dayFilteredExpenses),
     [sites, dayFilteredRecords, dayFilteredDeductions, dayFilteredExpenses]
@@ -311,6 +324,18 @@ export default function ReportsView({
                   <span className="tabular rounded-full bg-mist px-3 py-1 text-sm font-bold text-steel">
                     {w.totalDays} يوم
                   </span>
+                  {selectedMonth !== "all" && (
+                    <span
+                      title="عدد أيام الغياب في الشهر ده"
+                      className={`tabular rounded-full px-3 py-1 text-sm font-bold ${
+                        workerAbsences[w.workerId] > 0
+                          ? "bg-red-50 text-red-700"
+                          : "bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      غياب: {workerAbsences[w.workerId] ?? 0}
+                    </span>
+                  )}
                   {canPurge && (
                     <button
                       onClick={() => handlePurge(w.workerId, w.name)}

@@ -80,7 +80,7 @@ export default function App() {
   const [workers, setWorkers] = useState([]);
   const [todayRecords, setTodayRecords] = useState([]);
   const [allRecords, setAllRecords] = useState([]);
-  const [schedule, setSchedule] = useState({ offDays: [0], halfDays: [6] });
+  const [schedule, setSchedule] = useState({ offDays: [0], halfDays: [] });
   const [deductions, setDeductions] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -498,6 +498,7 @@ export default function App() {
             records={allRecords}
             deductions={deductions}
             expenses={expenses}
+            schedule={schedule}
             canPurge={isOwner}
             onPurgeWorker={purgeWorker}
             onRemoveDeduction={removeDeduction}
@@ -587,7 +588,11 @@ export default function App() {
             </div>
             <OwnerWorkersManager
               workers={workers}
-              onAdd={(name, wage, almoco) => addWorker({ name, wage, almoco })}
+              records={allRecords}
+              schedule={schedule}
+              onAdd={(name, wage, almoco, startDate) =>
+                addWorker({ name, wage, almoco, startDate })
+              }
               onRemove={removeWorker}
               onPurge={purgeWorker}
               onUpdate={updateWorker}

@@ -54,8 +54,16 @@ export default function DashboardView({
   );
 
   const summaries = useMemo(
-    () => buildPayrollSummaries(workers, monthRecords, monthDeductions, monthExpenses, schedule),
-    [workers, monthRecords, monthDeductions, monthExpenses, schedule]
+    () =>
+      buildPayrollSummaries(
+        workers,
+        monthRecords,
+        monthDeductions,
+        monthExpenses,
+        schedule,
+        currentMonth
+      ),
+    [workers, monthRecords, monthDeductions, monthExpenses, schedule, currentMonth]
   );
 
   const totals = useMemo(() => {

@@ -11,6 +11,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { todayKey } from "./format";
 
 function docsFromSnap(snap) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -51,12 +52,14 @@ export function subscribeWorkers(cb) {
   );
 }
 
-export function addWorker({ name, wage, almoco }) {
+export function addWorker({ name, wage, almoco, startDate }) {
   return addDoc(collection(db, "workers"), {
     name,
     wage: Number(wage) || 0,
     almoco: Number(almoco) || 0,
     hasInss: false,
+    // تاريخ بدء الشغل — لو ما اتحددش، بنفترض إنه بدأ النهاردة
+    startDate: startDate || todayKey(),
   });
 }
 
@@ -148,7 +151,9 @@ export function subscribeSchedule(cb) {
     if (snap.exists()) {
       cb(snap.data());
     } else {
-      cb({ offDays: [0], halfDays: [6] });
+      // يوم عادي بالنسبة للسبت: العمال بيشتغلوا نص يوم بس بيتحسبلهم يوم كامل
+      // (نظام البلد)، فمفيش داعي يبقى "نص يوم" في الجدول أصلاً
+      cb({ offDays: [0], halfDays: [] });
     }
   });
 }

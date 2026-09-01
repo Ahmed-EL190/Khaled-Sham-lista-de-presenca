@@ -63,9 +63,10 @@ export default function PayrollView({
         filteredRecords,
         filteredDeductions,
         filteredExpenses,
-        schedule
+        schedule,
+        selectedMonth
       ),
-    [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule]
+    [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule, selectedMonth]
   );
 
   // ---- من استلم مرتبه في الشهر المختار ----

@@ -21,6 +21,18 @@ export function formatMonthLabel(monthKey) {
   return date.toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long" });
 }
 
+// تاريخ مختصر (مثلاً "15 يناير 2026") — بنستخدمه في عرض تاريخ بدء شغل العامل
+export function formatDateShort(dateKey) {
+  if (!dateKey) return "";
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString("ar-EG-u-nu-latn", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function formatDateLong(dateKey) {
   const [y, m, d] = dateKey.split("-").map(Number);
   const date = new Date(y, m - 1, d);

@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { formatDateShort, todayKey } from "../lib/format";
+import { computeAbsenceDays } from "../lib/payroll";
 
 export default function OwnerWorkersManager({
   workers,
+  records = [],
+  schedule = {},
   onAdd,
   onRemove,
   onPurge,
@@ -10,10 +14,23 @@ export default function OwnerWorkersManager({
   const [name, setName] = useState("");
   const [wage, setWage] = useState("");
   const [almoco, setAlmoco] = useState("");
+  const [startDate, setStartDate] = useState(todayKey());
 
   const [bulkNames, setBulkNames] = useState("");
   const [bulkWage, setBulkWage] = useState("");
   const [bulkAlmoco, setBulkAlmoco] = useState("");
+  const [bulkStartDate, setBulkStartDate] = useState(todayKey());
+
+  // شهر النهاردة — بنعرض عليه عدد أيام الغياب جنب كل عامل
+  const currentMonthKey = todayKey().slice(0, 7);
+
+  const absenceByWorker = useMemo(() => {
+    const map = {};
+    for (const w of workers) {
+      map[w.id] = computeAbsenceDays(w, records, schedule, currentMonthKey).absentDays;
+    }
+    return map;
+  }, [workers, records, schedule, currentMonthKey]);
 
   const [bulkOpen, setBulkOpen] = useState(false);
   const [salaryMode, setSalaryMode] = useState(false);
@@ -135,12 +152,14 @@ export default function OwnerWorkersManager({
     onAdd(
       cleanName,
       wage,
-      almoco
+      almoco,
+      startDate || todayKey()
     );
 
     setName("");
     setWage("");
     setAlmoco("");
+    setStartDate(todayKey());
   }
 
   function submitBulk(e) {
@@ -169,7 +188,8 @@ export default function OwnerWorkersManager({
       onAdd(
         n,
         bulkWage,
-        bulkAlmoco
+        bulkAlmoco,
+        bulkStartDate || todayKey()
       );
 
       existing.add(n.toLowerCase());
@@ -179,6 +199,7 @@ export default function OwnerWorkersManager({
     setBulkNames("");
     setBulkWage("");
     setBulkAlmoco("");
+    setBulkStartDate(todayKey());
 
     alert(
       `اتضاف ${added} عامل${
@@ -205,6 +226,26 @@ export default function OwnerWorkersManager({
 
     onUpdate(worker.id, {
       wage: num,
+    });
+  }
+
+  function editStartDate(worker) {
+    const value = window.prompt(
+      `تاريخ بدء شغل ${worker.name}؟ (بصيغة YYYY-MM-DD)`,
+      worker.startDate || todayKey()
+    );
+
+    if (value === null) return;
+
+    const trimmed = value.trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      alert("التاريخ لازم يكون بالصيغة دي: 2026-01-15 مثلاً");
+      return;
+    }
+
+    onUpdate(worker.id, {
+      startDate: trimmed,
     });
   }
 
@@ -281,6 +322,16 @@ export default function OwnerWorkersManager({
           type="number"
           min="0"
           className="tabular w-36 rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+        />
+
+        <input
+          value={startDate}
+          onChange={(e) =>
+            setStartDate(e.target.value)
+          }
+          title="تاريخ بدء الشغل"
+          type="date"
+          className="tabular w-40 rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
         />
 
         <button
@@ -362,6 +413,16 @@ export default function OwnerWorkersManager({
               placeholder="ALMOCO الشهري (Kz)"
               type="number"
               min="0"
+              className="tabular rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+            />
+
+            <input
+              value={bulkStartDate}
+              onChange={(e) =>
+                setBulkStartDate(e.target.value)
+              }
+              title="تاريخ بدء الشغل لكل الأسماء دي"
+              type="date"
               className="tabular rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-steel"
             />
           </div>
@@ -508,11 +569,37 @@ export default function OwnerWorkersManager({
               key={w.id}
               className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between"
             >
-              <p className="text-sm font-medium text-ink">
-                {w.name}
-              </p>
+              <div>
+                <p className="text-sm font-medium text-ink">
+                  {w.name}
+                </p>
+                <p className="mt-0.5 text-[11px] text-out">
+                  بدأ الشغل: {w.startDate ? formatDateShort(w.startDate) : "—"}
+                </p>
+              </div>
 
               <div className="flex flex-wrap items-center gap-1.5">
+                {/* Start date */}
+                <button
+                  onClick={() => editStartDate(w)}
+                  title="تعديل تاريخ بدء الشغل"
+                  className="tabular rounded-full bg-page px-2.5 py-1 text-xs font-semibold text-ink-soft hover:bg-mist"
+                >
+                  بدأ: {w.startDate ? formatDateShort(w.startDate) : "—"}
+                </button>
+
+                {/* Absence this month */}
+                <span
+                  title="عدد أيام الغياب في الشهر الحالي"
+                  className={`tabular rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    absenceByWorker[w.id] > 0
+                      ? "bg-red-50 text-red-700"
+                      : "bg-emerald-50 text-emerald-700"
+                  }`}
+                >
+                  غياب الشهر: {absenceByWorker[w.id] ?? 0}
+                </span>
+
                 {/* Basic */}
                 <button
                   onClick={() => editWage(w)}
