@@ -29,7 +29,20 @@ export function dayType(dateKey, schedule) {
 
 const DAYS_IN_MONTH = 30;
 
-// عدد أيام الشهر الحقيقي.
+// --------------------------------------------------------------
+// الشركة بتحسب الشهر دايمًا على أساس 30 يوم، مهما كان عدد
+// أيام الشهر الفعلي في التقويم (28 في فبراير أو 31 في شهور تانية).
+//
+// الشهر القياسي = 30 يوم
+//   - 4 أيام إجازة أسبوعية (الأحد) مدفوعة
+//   - 26 يوم عمل
+// --------------------------------------------------------------
+const STANDARD_OFF_DAYS_PER_MONTH = 4;
+const STANDARD_WORK_DAYS_PER_MONTH =
+  DAYS_IN_MONTH - STANDARD_OFF_DAYS_PER_MONTH; // 26
+
+// عدد أيام الشهر الحقيقي (بيُستخدم بس عشان نلف على تواريخ
+// حقيقية موجودة في السجلات، مش في حساب مستحقات العامل).
 // مثال:
 // 2026-02 = 28
 // 2026-09 = 30
@@ -39,11 +52,14 @@ function daysInCalendarMonth(monthKey) {
   return new Date(y, m, 0).getDate();
 }
 
-// حساب عدد أيام الإجازة الأسبوعية المدفوعة
-// الموجودة فعليًا داخل الشهر.
+// حساب عدد أيام الإجازة الأسبوعية المدفوعة في الشهر.
 //
-// مهم:
-// السبت لا يدخل هنا لأنه يوم عمل كامل في نظام الشركة.
+// لو العامل كان موجود من أول يوم في الشهر (يعني اشتغل الشهر
+// كامل): نرجع رقم ثابت دايمًا = 4، بغض النظر عن كون الشهر
+// 28 يوم أو 30 أو 31 في التقويم.
+//
+// لو العامل بدأ شغله في نص الشهر: نحسب أيام الإجازة الفعلية
+// من تاريخ بدايته لحد آخر الشهر حسب التقويم الحقيقي (تناسبيًا).
 export function countScheduledOffDaysInMonth(
   schedule,
   monthKey,
@@ -53,6 +69,10 @@ export function countScheduledOffDaysInMonth(
 
   if (offWeekdays.length === 0 || !monthKey) {
     return 0;
+  }
+
+  if (!fromDateKey) {
+    return STANDARD_OFF_DAYS_PER_MONTH;
   }
 
   const [y, m] = monthKey.split("-").map(Number);
@@ -65,7 +85,7 @@ export function countScheduledOffDaysInMonth(
 
     // لو العامل بدأ في منتصف الشهر
     // لا نحسب أيام الإجازة اللي قبل بداية شغله.
-    if (fromDateKey && dateKey < fromDateKey) {
+    if (dateKey < fromDateKey) {
       continue;
     }
 
@@ -126,6 +146,9 @@ function emptyBucket(
     // الإجازات الأسبوعية المدفوعة
     paidHolidayDays: 0,
 
+    // أيام الغياب (من غير عذر) في الشهر
+    absentDays: 0,
+
     // الأساسي المستحق
     gross: 0,
 
@@ -163,6 +186,7 @@ export function buildPayrollSummaries(
 ) {
   const byWorker = {};
   const startDateByWorker = {};
+  const workerById = {};
 
   // --------------------------------------------------
   // إنشاء كشف للعمال الموجودين حاليًا فقط
@@ -177,6 +201,7 @@ export function buildPayrollSummaries(
     );
 
     startDateByWorker[w.id] = w.startDate || null;
+    workerById[w.id] = w;
   }
 
   // --------------------------------------------------
@@ -320,6 +345,20 @@ export function buildPayrollSummaries(
       : 0;
 
     // ------------------------------------------------
+    // أيام الغياب
+    // ------------------------------------------------
+    //
+    // بتتحسب دايمًا (حتى لو العامل ما جاش يشتغل خالص
+    // في الشهر ده)، عشان تظهر في الكشف صح.
+    // ------------------------------------------------
+    b.absentDays = computeAbsenceDays(
+      workerById[workerId],
+      records,
+      schedule,
+      monthKey
+    ).absentDays;
+
+    // ------------------------------------------------
     // الأساسي المستحق
     // ------------------------------------------------
     //
@@ -382,6 +421,13 @@ export function buildPayrollSummaries(
 //
 // workDays:
 // عدد أيام العمل اللي كان المفروض العامل يشتغلها.
+//
+// لو العامل اشتغل الشهر كامل من أول يوم فيه والشهر خلص فعلاً:
+// workDays = 26 دايمًا (الشهر = 30 يوم ثابت: 26 شغل + 4 إجازة)،
+// حتى لو كان الشهر في التقويم 28 يوم (فبراير) أو 31 يوم.
+//
+// لو العامل بدأ في نص الشهر، أو لسه إحنا في نفس الشهر الحالي
+// وما خلصش، بنحسب workDays تناسبيًا من التقويم الحقيقي.
 //
 // attendedDays:
 // عدد الأيام اللي سجل فيها حضور.
@@ -462,7 +508,7 @@ export function computeAbsenceDays(
       .map((r) => r.dateKey)
   );
 
-  let workDays = 0;
+  let realWorkDays = 0;
   let attendedDays = 0;
 
   for (
@@ -502,12 +548,31 @@ export function computeAbsenceDays(
       continue;
     }
 
-    workDays += 1;
+    realWorkDays += 1;
 
     if (attendedSet.has(dateKey)) {
       attendedDays += 1;
     }
   }
+
+  // هل العامل كان موجود من أول يوم في الشهر والشهر خلص فعلاً
+  // (مش الشهر الحالي اللي لسه شغال)؟
+  const isCurrentMonth =
+    monthKey === currentMonthKey;
+
+  const workedFullMonth =
+    rangeStart === monthStartKey &&
+    !isCurrentMonth;
+
+  // لو اشتغل الشهر كامل: نستخدم الحصة الثابتة (26 يوم عمل)
+  // بدل عدد أيام العمل الحقيقي في التقويم، عشان الشهر يتحسب
+  // دايمًا على أساس 30 يوم زي بعضه.
+  //
+  // لو شهر جزئي (بداية في النص أو الشهر الحالي لسه ما خلصش):
+  // نفضل نستخدم عدد أيام العمل الحقيقي حسب التقويم.
+  const workDays = workedFullMonth
+    ? STANDARD_WORK_DAYS_PER_MONTH
+    : realWorkDays;
 
   return {
     workDays,

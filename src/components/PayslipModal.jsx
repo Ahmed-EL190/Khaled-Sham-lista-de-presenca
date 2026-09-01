@@ -71,40 +71,26 @@ export default function PayslipModal({
 
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-line pb-4">
-          <img
-            src={logo}
-            alt=""
-            className="h-12 w-12 object-contain"
-          />
+          <img src={logo} alt="" className="h-12 w-12 object-contain" />
 
           <div>
-            <h2 className="text-base font-black text-ink">
-              كشف مرتب
-            </h2>
+            <h2 className="text-base font-black text-ink">كشف مرتب</h2>
 
-            <p className="text-xs text-out">
-              {monthLabel}
-            </p>
+            <p className="text-xs text-out">{monthLabel}</p>
           </div>
         </div>
 
         {/* Worker */}
         <div className="mt-4">
-          <p className="text-xs text-out">
-            اسم العامل
-          </p>
+          <p className="text-xs text-out">اسم العامل</p>
 
-          <p className="text-lg font-bold text-ink">
-            {summary.name}
-          </p>
+          <p className="text-lg font-bold text-ink">{summary.name}</p>
         </div>
 
         {/* Salary */}
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
           <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">
-              المرتب الأساسي
-            </p>
+            <p className="text-xs text-out">المرتب الأساسي</p>
 
             <p className="tabular font-semibold text-ink">
               {money(summary.basicSalary)}
@@ -112,9 +98,7 @@ export default function PayslipModal({
           </div>
 
           <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">
-              اليومية
-            </p>
+            <p className="text-xs text-out">اليومية</p>
 
             <p className="tabular font-semibold text-ink">
               {roundDaily(summary.dailyWage).toLocaleString("en-US")} Kz
@@ -122,9 +106,7 @@ export default function PayslipModal({
           </div>
 
           <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">
-              أيام كاملة
-            </p>
+            <p className="text-xs text-out">أيام كاملة</p>
 
             <p className="tabular font-semibold text-ink">
               {summary.fullDays +
@@ -134,19 +116,15 @@ export default function PayslipModal({
           </div>
 
           <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">
-              نص أيام
-            </p>
+            <p className="text-xs text-out">الغياب</p>
 
             <p className="tabular font-semibold text-ink">
-              {summary.halfDays}
+              {summary.absentDays}
             </p>
           </div>
 
           <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">
-              إجازات مدفوعة
-            </p>
+            <p className="text-xs text-out">إجازات مدفوعة</p>
 
             <p className="tabular font-semibold text-ink">
               {summary.paidHolidayDays}
@@ -154,9 +132,7 @@ export default function PayslipModal({
           </div>
 
           <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">
-              ALMOCO
-            </p>
+            <p className="text-xs text-out">ALMOCO</p>
 
             <p className="tabular font-semibold text-in">
               {money(summary.almoco)}
@@ -166,9 +142,7 @@ export default function PayslipModal({
 
         {/* Basic salary earned */}
         <div className="mt-4 flex items-center justify-between rounded-lg bg-mist px-3 py-2 text-sm">
-          <span className="font-semibold text-steel">
-            الأساسي المستحق
-          </span>
+          <span className="font-semibold text-steel">الأساسي المستحق</span>
 
           <span className="tabular font-bold text-steel">
             {money(summary.gross)}
@@ -177,9 +151,7 @@ export default function PayslipModal({
 
         {/* Almoco */}
         <div className="mt-2 flex items-center justify-between rounded-lg bg-page px-3 py-2 text-sm">
-          <span className="font-semibold text-ink">
-            ALMOCO — بدل الأكل
-          </span>
+          <span className="font-semibold text-ink">ALMOCO — بدل الأكل</span>
 
           <span className="tabular font-bold text-in">
             +{money(summary.almoco)}
@@ -189,9 +161,7 @@ export default function PayslipModal({
         {/* Deductions */}
         {deductions.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-xs font-bold text-out">
-              الخصومات
-            </h3>
+            <h3 className="text-xs font-bold text-out">الخصومات</h3>
 
             <ul className="mt-1 divide-y divide-line">
               {deductions.map((d) => (
@@ -216,9 +186,7 @@ export default function PayslipModal({
         {/* Expenses */}
         {expenses.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-xs font-bold text-out">
-              المصروفات / السلف
-            </h3>
+            <h3 className="text-xs font-bold text-out">المصروفات / السلف</h3>
 
             <ul className="mt-1 divide-y divide-line">
               {expenses.map((e) => (
@@ -255,9 +223,7 @@ export default function PayslipModal({
 
         {/* Net */}
         <div className="mt-5 flex items-center justify-between rounded-lg border border-line bg-page px-4 py-3">
-          <span className="text-sm font-bold text-ink">
-            الصافي المستحق
-          </span>
+          <span className="text-sm font-bold text-ink">الصافي المستحق</span>
 
           <span className="tabular text-xl font-black text-ink">
             {money(summary.net)}
@@ -269,6 +235,6 @@ export default function PayslipModal({
         </p>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

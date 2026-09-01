@@ -17,7 +17,10 @@ function money(n) {
 function formatPaidAt(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  const date = d.toLocaleDateString("ar-EG-u-nu-latn", { day: "numeric", month: "short" });
+  const date = d.toLocaleDateString("ar-EG-u-nu-latn", {
+    day: "numeric",
+    month: "short",
+  });
   return `${date} - ${formatTime(iso)}`;
 }
 
@@ -32,11 +35,13 @@ export default function PayrollView({
   onMarkUnpaid,
 }) {
   const monthKeys = useMemo(() => {
-    const set = new Set([
-      ...records.map((r) => r.dateKey?.slice(0, 7)),
-      ...deductions.map((d) => d.dateKey?.slice(0, 7)),
-      ...expenses.map((e) => e.dateKey?.slice(0, 7)),
-    ].filter(Boolean));
+    const set = new Set(
+      [
+        ...records.map((r) => r.dateKey?.slice(0, 7)),
+        ...deductions.map((d) => d.dateKey?.slice(0, 7)),
+        ...expenses.map((e) => e.dateKey?.slice(0, 7)),
+      ].filter(Boolean),
+    );
     set.add(todayKey().slice(0, 7));
     return Array.from(set).sort().reverse();
   }, [records, deductions, expenses]);
@@ -45,15 +50,15 @@ export default function PayrollView({
 
   const filteredRecords = useMemo(
     () => records.filter((r) => r.dateKey?.startsWith(selectedMonth)),
-    [records, selectedMonth]
+    [records, selectedMonth],
   );
   const filteredDeductions = useMemo(
     () => deductions.filter((d) => d.dateKey?.startsWith(selectedMonth)),
-    [deductions, selectedMonth]
+    [deductions, selectedMonth],
   );
   const filteredExpenses = useMemo(
     () => expenses.filter((e) => e.dateKey?.startsWith(selectedMonth)),
-    [expenses, selectedMonth]
+    [expenses, selectedMonth],
   );
 
   const summaries = useMemo(
@@ -64,9 +69,16 @@ export default function PayrollView({
         filteredDeductions,
         filteredExpenses,
         schedule,
-        selectedMonth
+        selectedMonth,
       ),
-    [workers, filteredRecords, filteredDeductions, filteredExpenses, schedule, selectedMonth]
+    [
+      workers,
+      filteredRecords,
+      filteredDeductions,
+      filteredExpenses,
+      schedule,
+      selectedMonth,
+    ],
   );
 
   // ---- من استلم مرتبه في الشهر المختار ----
@@ -141,14 +153,24 @@ export default function PayrollView({
           }
           return acc;
         },
-        { gross: 0, deductions: 0, expenses: 0, inss: 0, net: 0, paidCount: 0, paidNet: 0, unpaidCount: 0 }
+        {
+          gross: 0,
+          deductions: 0,
+          expenses: 0,
+          inss: 0,
+          net: 0,
+          paidCount: 0,
+          paidNet: 0,
+          unpaidCount: 0,
+        },
       ),
-    [filteredSummaries, paidMap]
+    [filteredSummaries, paidMap],
   );
 
   // ---- single payslip modal ----
   const [payslipWorkerId, setPayslipWorkerId] = useState(null);
-  const payslipSummary = summaries.find((s) => s.workerId === payslipWorkerId) || null;
+  const payslipSummary =
+    summaries.find((s) => s.workerId === payslipWorkerId) || null;
   const payslipDeductions = filteredDeductions
     .filter((d) => d.workerId === payslipWorkerId)
     .slice()
@@ -163,25 +185,29 @@ export default function PayrollView({
 
   function exportPayrollExcel() {
     const rows = filteredSummaries.map((s) => ({
-      "الاسم": s.name,
+      الاسم: s.name,
       "المرتب الشهري": s.monthlyWage,
-      "اليومية": roundDaily(s.dailyWage),
+      اليومية: roundDaily(s.dailyWage),
       "أيام كاملة": s.fullDays,
-      "نص أيام": s.halfDays,
+      الغياب: s.absentDays,
       "أيام في إجازة رسمية اشتغل فيها": s.offDaysWorked,
       "إجازات مدفوعة": s.paidHolidayDays,
       "الإجمالي المستحق": s.gross,
       "بدل الأكل (Almoco)": s.almoco,
-      "الخصومات": s.deductionsTotal,
+      الخصومات: s.deductionsTotal,
       "المصروفات/السلف": s.expensesTotal,
       "الضمان الاجتماعي": s.hasInss ? s.inss : 0,
-      "الصافي": s.net,
-      "الحالة": paidMap[s.workerId] ? "اتصرف" : "لسه",
+      الصافي: s.net,
+      الحالة: paidMap[s.workerId] ? "اتصرف" : "لسه",
       "تاريخ الاستلام": paidMap[s.workerId]?.paidAt
         ? formatPaidAt(paidMap[s.workerId].paidAt)
         : "",
     }));
-    exportRowsToExcel(rows, `رواتب - ${formatMonthLabel(selectedMonth)}`, "الرواتب");
+    exportRowsToExcel(
+      rows,
+      `رواتب - ${formatMonthLabel(selectedMonth)}`,
+      "الرواتب",
+    );
   }
 
   return (
@@ -283,7 +309,9 @@ export default function PayrollView({
           <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-white p-4 sm:grid-cols-6">
             <div>
               <p className="text-[11px] text-out">الإجمالي المستحق</p>
-              <p className="tabular mt-0.5 text-base font-bold text-ink">{money(totals.gross)}</p>
+              <p className="tabular mt-0.5 text-base font-bold text-ink">
+                {money(totals.gross)}
+              </p>
             </div>
             <div>
               <p className="text-[11px] text-out">اتصرف</p>
@@ -311,7 +339,9 @@ export default function PayrollView({
             </div>
             <div>
               <p className="text-[11px] text-out">الصافي الكلي</p>
-              <p className="tabular mt-0.5 text-lg font-black text-ink">{money(totals.net)}</p>
+              <p className="tabular mt-0.5 text-lg font-black text-ink">
+                {money(totals.net)}
+              </p>
             </div>
           </div>
 
@@ -343,9 +373,15 @@ export default function PayrollView({
                           stroke="currentColor"
                           strokeWidth="2"
                         >
-                          <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                          <path
+                            d="M15 18l-6-6 6-6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
                         </svg>
-                        <p className="truncate text-base font-bold text-ink">{s.name}</p>
+                        <p className="truncate text-base font-bold text-ink">
+                          {s.name}
+                        </p>
                         {paidMap[s.workerId] ? (
                           <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                             اتصرف ✓
@@ -373,7 +409,8 @@ export default function PayrollView({
                           <div className="rounded-lg bg-page px-3 py-2">
                             <p className="text-out">اليومية</p>
                             <p className="tabular mt-0.5 font-semibold text-ink">
-                              {roundDaily(s.dailyWage).toLocaleString("en-US")} Kz
+                              {roundDaily(s.dailyWage).toLocaleString("en-US")}{" "}
+                              Kz
                             </p>
                           </div>
                           <div className="rounded-lg bg-page px-3 py-2">
@@ -389,8 +426,10 @@ export default function PayrollView({
                             </p>
                           </div>
                           <div className="rounded-lg bg-page px-3 py-2">
-                            <p className="text-out">نص أيام</p>
-                            <p className="tabular mt-0.5 font-semibold text-ink">{s.halfDays}</p>
+                            <p className="text-out">الغياب</p>
+                            <p className="tabular mt-0.5 font-semibold text-red-600">
+                              {s.absentDays}
+                            </p>
                           </div>
                           <div className="rounded-lg bg-page px-3 py-2">
                             <p className="text-out">الإجمالي المستحق</p>
@@ -401,13 +440,17 @@ export default function PayrollView({
                           <div className="rounded-lg bg-page px-3 py-2">
                             <p className="text-out">الخصومات</p>
                             <p className="tabular mt-0.5 font-semibold text-red-600">
-                              {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
+                              {s.deductionsTotal > 0
+                                ? `-${money(s.deductionsTotal)}`
+                                : "—"}
                             </p>
                           </div>
                           <div className="rounded-lg bg-page px-3 py-2">
                             <p className="text-out">المصروفات/السلف</p>
                             <p className="tabular mt-0.5 font-semibold text-orange-600">
-                              {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
+                              {s.expensesTotal > 0
+                                ? `-${money(s.expensesTotal)}`
+                                : "—"}
                             </p>
                           </div>
                           {s.hasInss && (

@@ -33,7 +33,7 @@ export default function PayrollAllSlipModal({
       expenses: 0,
       inss: 0,
       net: 0,
-    }
+    },
   );
 
   return createPortal(
@@ -158,9 +158,7 @@ export default function PayrollAllSlipModal({
               كشف مرتبات — كل العمال
             </h2>
 
-            <p className="text-xs text-out print:text-[9px]">
-              {monthLabel}
-            </p>
+            <p className="text-xs text-out print:text-[9px]">{monthLabel}</p>
           </div>
         </div>
 
@@ -189,7 +187,7 @@ export default function PayrollAllSlipModal({
                 <th>المرتب الأساسي</th>
                 <th>أيام كاملة</th>
                 <th>إجازات مدفوعة</th>
-                <th>نص أيام</th>
+                <th>الغياب</th>
                 <th>الأساسي المستحق</th>
                 <th>ALMOCO</th>
                 <th>الخصومات</th>
@@ -202,9 +200,7 @@ export default function PayrollAllSlipModal({
             <tbody>
               {summaries.map((s, i) => (
                 <tr key={s.workerId}>
-                  <td className="px-2 py-2 text-ink-soft">
-                    {i + 1}
-                  </td>
+                  <td className="px-2 py-2 text-ink-soft">{i + 1}</td>
 
                   <td className="name-cell px-2 py-2 font-semibold text-ink">
                     {s.name}
@@ -215,27 +211,21 @@ export default function PayrollAllSlipModal({
                   </td>
 
                   <td className="px-2 py-2 text-ink-soft">
-                    {s.fullDays +
-                      s.offDaysWorked +
-                      s.paidHolidayDays}
+                    {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
                   </td>
 
                   <td className="px-2 py-2 text-ink-soft">
                     {s.paidHolidayDays}
                   </td>
 
-                  <td className="px-2 py-2 text-ink-soft">
-                    {s.halfDays}
+                  <td className="px-2 py-2 text-red-600">
+                    {s.absentDays > 0 ? s.absentDays : "—"}
                   </td>
 
-                  <td className="px-2 py-2 text-ink-soft">
-                    {money(s.gross)}
-                  </td>
+                  <td className="px-2 py-2 text-ink-soft">{money(s.gross)}</td>
 
                   <td className="px-2 py-2 font-semibold text-in">
-                    {s.almoco > 0
-                      ? money(s.almoco)
-                      : "—"}
+                    {s.almoco > 0 ? money(s.almoco) : "—"}
                   </td>
 
                   <td className="px-2 py-2 text-red-600">
@@ -245,15 +235,11 @@ export default function PayrollAllSlipModal({
                   </td>
 
                   <td className="px-2 py-2 text-orange-600">
-                    {s.expensesTotal > 0
-                      ? `-${money(s.expensesTotal)}`
-                      : "—"}
+                    {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
                   </td>
 
                   <td className="px-2 py-2 text-purple-700">
-                    {s.hasInss
-                      ? `-${money(s.inss)}`
-                      : "—"}
+                    {s.hasInss ? `-${money(s.inss)}` : "—"}
                   </td>
 
                   <td className="px-2 py-2 font-black text-ink">
@@ -270,41 +256,27 @@ export default function PayrollAllSlipModal({
                   الإجمالي
                 </td>
 
-                <td className="px-2 py-2">
-                  {money(totals.basicSalary)}
-                </td>
+                <td className="px-2 py-2">{money(totals.basicSalary)}</td>
 
                 <td colSpan="3"></td>
 
-                <td className="px-2 py-2">
-                  {money(totals.gross)}
-                </td>
+                <td className="px-2 py-2">{money(totals.gross)}</td>
 
-                <td className="px-2 py-2 text-in">
-                  {money(totals.almoco)}
-                </td>
+                <td className="px-2 py-2 text-in">{money(totals.almoco)}</td>
 
                 <td className="px-2 py-2 text-red-600">
-                  {totals.deductions > 0
-                    ? `-${money(totals.deductions)}`
-                    : "—"}
+                  {totals.deductions > 0 ? `-${money(totals.deductions)}` : "—"}
                 </td>
 
                 <td className="px-2 py-2 text-orange-600">
-                  {totals.expenses > 0
-                    ? `-${money(totals.expenses)}`
-                    : "—"}
+                  {totals.expenses > 0 ? `-${money(totals.expenses)}` : "—"}
                 </td>
 
                 <td className="px-2 py-2 text-purple-700">
-                  {totals.inss > 0
-                    ? `-${money(totals.inss)}`
-                    : "—"}
+                  {totals.inss > 0 ? `-${money(totals.inss)}` : "—"}
                 </td>
 
-                <td className="px-2 py-2 font-black">
-                  {money(totals.net)}
-                </td>
+                <td className="px-2 py-2 font-black">{money(totals.net)}</td>
               </tr>
             </tfoot>
           </table>
@@ -315,6 +287,6 @@ export default function PayrollAllSlipModal({
         </p>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
