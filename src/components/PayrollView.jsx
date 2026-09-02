@@ -361,11 +361,11 @@ export default function PayrollView({
                   >
                     <button
                       onClick={() => toggleWorker(s.workerId)}
-                      className="flex w-full items-center justify-between gap-2 px-4 py-3 text-right"
+                      className="flex w-full items-start justify-between gap-2 px-4 py-3 text-right"
                     >
-                      <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
                         <svg
-                          className={`h-4 w-4 shrink-0 text-out transition-transform ${
+                          className={`mt-0.5 h-4 w-4 shrink-0 text-out transition-transform ${
                             isOpen ? "-rotate-90" : ""
                           }`}
                           viewBox="0 0 24 24"
@@ -379,7 +379,7 @@ export default function PayrollView({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        <p className="truncate text-base font-bold text-ink">
+                        <p className="min-w-0 break-words text-base font-bold text-ink">
                           {s.name}
                         </p>
                         {paidMap[s.workerId] ? (
@@ -391,8 +391,13 @@ export default function PayrollView({
                             لسه
                           </span>
                         )}
+                        {s.debtBalance > 0 && (
+                          <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                            عليه دين: {money(s.debtBalance)}
+                          </span>
+                        )}
                       </div>
-                      <span className="tabular shrink-0 text-lg font-black text-ink">
+                      <span className="tabular mt-0.5 shrink-0 text-lg font-black text-ink">
                         {money(s.net)}
                       </span>
                     </button>

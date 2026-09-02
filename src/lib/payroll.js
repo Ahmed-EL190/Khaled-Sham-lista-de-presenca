@@ -117,11 +117,16 @@ function emptyBucket(
   name,
   basicSalary,
   hasInss,
-  almoco
+  almoco,
+  debtBalance
 ) {
   return {
     workerId,
     name,
+
+    // رصيد السلفة/الدين المتبقي على العامل (بيفضل زي ما هو
+    // لحد ما يتسدد بالكامل، مش بيتصفر لوحده كل شهر).
+    debtBalance: Number(debtBalance) || 0,
 
     // المرتب الأساسي
     basicSalary: Number(basicSalary) || 0,
@@ -130,7 +135,16 @@ function emptyBucket(
     monthlyWage: Number(basicSalary) || 0,
 
     // اليومية
-    dailyWage: dailyWageFromMonthly(basicSalary),
+    //
+    // لو العامل عنده ALMOCO: اليومية = (الأساسي + ALMOCO) ÷ 30
+    // لو مفيش ALMOCO: اليومية = الأساسي ÷ 30 بس
+    //
+    // يعني ALMOCO بقى بيتحسب باليوم زي الأساسي بالظبط —
+    // يوم غياب أو نص يوم بيأثر عليه هو كمان، مش بيتدفع كامل
+    // ثابت زي الأول.
+    dailyWage: dailyWageFromMonthly(
+      (Number(basicSalary) || 0) + (Number(almoco) || 0)
+    ),
 
     // بدل الأكل
     almoco: Number(almoco) || 0,
@@ -197,7 +211,8 @@ export function buildPayrollSummaries(
       w.name,
       w.wage || 0,
       w.hasInss,
-      w.almoco || 0
+      w.almoco || 0,
+      w.debtBalance || 0
     );
 
     startDateByWorker[w.id] = w.startDate || null;
@@ -387,8 +402,12 @@ export function buildPayrollSummaries(
     // ------------------------------------------------
     // الأساسي + بدل الأكل
     // ------------------------------------------------
-    b.totalBeforeDeductions =
-      b.gross + b.almoco;
+    //
+    // مبقاش بيتضاف هنا لوحده، لأن اليومية (b.dailyWage) بقت
+    // أصلاً شاملة الأساسي + ALMOCO مع بعض، فـ b.gross
+    // اتحسب بالفعل شامل الاتنين حسب الأيام الفعلية.
+    // ------------------------------------------------
+    b.totalBeforeDeductions = b.gross;
 
     // ------------------------------------------------
     // الصافي

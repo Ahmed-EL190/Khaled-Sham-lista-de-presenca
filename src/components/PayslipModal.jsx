@@ -84,7 +84,7 @@ export default function PayslipModal({
         <div className="mt-4">
           <p className="text-xs text-out">اسم العامل</p>
 
-          <p className="text-lg font-bold text-ink">{summary.name}</p>
+          <p className="break-words text-lg font-bold text-ink">{summary.name}</p>
         </div>
 
         {/* Salary */}
@@ -140,23 +140,23 @@ export default function PayslipModal({
           </div>
         </div>
 
-        {/* Basic salary earned */}
+        {/* Basic salary earned (شامل ALMOCO حسب الحضور) */}
         <div className="mt-4 flex items-center justify-between rounded-lg bg-mist px-3 py-2 text-sm">
-          <span className="font-semibold text-steel">الأساسي المستحق</span>
+          <span className="font-semibold text-steel">
+            المستحق (أساسي {summary.almoco > 0 ? "+ أكل" : ""})
+          </span>
 
           <span className="tabular font-bold text-steel">
             {money(summary.gross)}
           </span>
         </div>
 
-        {/* Almoco */}
-        <div className="mt-2 flex items-center justify-between rounded-lg bg-page px-3 py-2 text-sm">
-          <span className="font-semibold text-ink">ALMOCO — بدل الأكل</span>
-
-          <span className="tabular font-bold text-in">
-            +{money(summary.almoco)}
-          </span>
-        </div>
+        {summary.almoco > 0 && (
+          <p className="mt-1 text-[11px] text-out">
+            اليومية شاملة بدل الأكل ({money(summary.almoco)} شهريًا) موزّع
+            على أيام الحضور
+          </p>
+        )}
 
         {/* Deductions */}
         {deductions.length > 0 && (
@@ -229,6 +229,19 @@ export default function PayslipModal({
             {money(summary.net)}
           </span>
         </div>
+
+        {/* Remaining debt / سلفة */}
+        {summary.debtBalance > 0 && (
+          <div className="mt-2 flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
+            <span className="text-sm font-bold text-rose-700">
+              لسه باقي عليه من السلفة
+            </span>
+
+            <span className="tabular text-lg font-black text-rose-700">
+              {money(summary.debtBalance)}
+            </span>
+          </div>
+        )}
 
         <p className="mt-4 text-center text-[10px] text-out">
           تم إصدار الكشف بتاريخ {formatDateLong(todayKey())}

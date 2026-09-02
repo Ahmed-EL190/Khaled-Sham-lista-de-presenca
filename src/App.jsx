@@ -596,6 +596,13 @@ export default function App() {
               onRemove={removeWorker}
               onPurge={purgeWorker}
               onUpdate={updateWorker}
+              onAddDeduction={(d) =>
+                addDeduction({
+                  ...d,
+                  siteId: null,
+                  siteName: null,
+                })
+              }
             />
           </div>
         )}

@@ -10,6 +10,7 @@ export default function OwnerWorkersManager({
   onRemove,
   onPurge,
   onUpdate,
+  onAddDeduction,
 }) {
   const [name, setName] = useState("");
   const [wage, setWage] = useState("");
@@ -269,6 +270,102 @@ export default function OwnerWorkersManager({
   function toggleInss(worker) {
     onUpdate(worker.id, {
       hasInss: !worker.hasInss,
+    });
+  }
+
+  // ------------------------------------------------------------
+  // الدين / السلفة الكبيرة
+  //
+  // فكرتها: الرصيد ده بيفضل زي ما هو من شهر للتاني، ومش بيتصفر
+  // لوحده. بيتغير بس لما إحنا نغيره إحنا من هنا:
+  //   - "سلفة جديدة"  => بيزود الرصيد بس، من غير ما يأثر على
+  //                      صافي مرتب الشهر ده خالص.
+  //   - "سداد من المرتب" => بيسجل خصم فعلي على الشهر الحالي
+  //                      (هيظهر في كشف المرتب وفي "الخصومات")
+  //                      وفي نفس الوقت بينقص من الرصيد.
+  //   - "تصحيح الرصيد" => تعديل يدوي مباشر للرقم لو غلط.
+  // ------------------------------------------------------------
+
+  function addNewDebt(worker) {
+    const value = window.prompt(
+      `قيمة السلفة الجديدة لـ ${worker.name}؟ (Kz)\nهتتضاف على الدين المتبقي وهتفضل معلقة لحد ما تتخصم من مرتبه على شهور.`,
+      ""
+    );
+
+    if (value === null) return;
+
+    const num = Number(value);
+
+    if (Number.isNaN(num) || num <= 0) {
+      alert("اكتب رقم أكبر من صفر");
+      return;
+    }
+
+    const current = Number(worker.debtBalance || 0);
+
+    onUpdate(worker.id, {
+      debtBalance: current + num,
+    });
+  }
+
+  function repayFromSalary(worker) {
+    const current = Number(worker.debtBalance || 0);
+
+    if (current <= 0) {
+      alert(`${worker.name} مفيهوش دين متبقي دلوقتي`);
+      return;
+    }
+
+    const value = window.prompt(
+      `${worker.name} عليه ${current.toLocaleString(
+        "en-US"
+      )} Kz.\nتحب تخصم قد ايه من مرتب الشهر ده؟ (هيظهر كخصم في كشف مرتبه)`,
+      String(current)
+    );
+
+    if (value === null) return;
+
+    const num = Number(value);
+
+    if (Number.isNaN(num) || num <= 0) {
+      alert("اكتب رقم أكبر من صفر");
+      return;
+    }
+
+    const capped = Math.min(num, current);
+
+    if (onAddDeduction) {
+      onAddDeduction({
+        workerId: worker.id,
+        workerName: worker.name,
+        dateKey: todayKey(),
+        amount: capped,
+        reason: "سداد سلفة",
+      });
+    }
+
+    onUpdate(worker.id, {
+      debtBalance: current - capped,
+    });
+  }
+
+  function editDebtBalance(worker) {
+    const value = window.prompt(
+      `تصحيح رصيد الدين يدويًا لـ ${worker.name} (Kz)\n(استخدمها بس لو الرقم غلط، عادي متستخدمهاش لأي حاجة تانية)`,
+      worker.debtBalance || 0
+    );
+
+    if (value === null) return;
+
+    const num = Number(value);
+
+    if (Number.isNaN(num) || num < 0) {
+      alert("اكتب رقم صفر أو أكبر");
+      return;
+    }
+
+    onUpdate(worker.id, {
+      debtBalance: num,
     });
   }
 
@@ -639,6 +736,36 @@ export default function OwnerWorkersManager({
 
                   ضمان 3%
                 </label>
+
+                {/* Debt / سلفة */}
+                {Number(w.debtBalance || 0) > 0 && (
+                  <button
+                    onClick={() => repayFromSalary(w)}
+                    title="دوس عشان تخصم جزء من الدين من مرتب الشهر ده"
+                    className="tabular rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                  >
+                    عليه دين:{" "}
+                    {Number(w.debtBalance || 0).toLocaleString("en-US")} Kz
+                  </button>
+                )}
+
+                <button
+                  onClick={() => addNewDebt(w)}
+                  title="سجل سلفة جديدة (هتفضل معلقة وتتخصم على شهور)"
+                  className="rounded-full bg-page px-2.5 py-1 text-xs font-semibold text-out hover:bg-mist"
+                >
+                  + سلفة
+                </button>
+
+                {Number(w.debtBalance || 0) > 0 && (
+                  <button
+                    onClick={() => editDebtBalance(w)}
+                    title="تصحيح رصيد الدين يدويًا"
+                    className="rounded-full px-2 py-1 text-[11px] font-medium text-out hover:bg-page"
+                  >
+                    تصحيح الرصيد
+                  </button>
+                )}
 
                 <button
                   onClick={() => {
