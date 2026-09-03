@@ -33,6 +33,13 @@ export default function PayrollView({
   payments = [],
   onMarkPaid,
   onMarkUnpaid,
+  onUpdateWorker,
+  onAddDeduction,
+  onRemoveDeduction,
+  onAddExpense,
+  onRemoveExpense,
+  onAddAttendance,
+  onRemoveAttendance,
 }) {
   const monthKeys = useMemo(() => {
     const set = new Set(
@@ -177,6 +184,10 @@ export default function PayrollView({
     .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
   const payslipExpenses = filteredExpenses
     .filter((e) => e.workerId === payslipWorkerId)
+    .slice()
+    .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
+  const payslipAttendance = filteredRecords
+    .filter((r) => r.workerId === payslipWorkerId && r.checkIn)
     .slice()
     .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
 
@@ -511,9 +522,18 @@ export default function PayrollView({
         <PayslipModal
           summary={payslipSummary}
           monthLabel={formatMonthLabel(selectedMonth)}
+          monthKey={selectedMonth}
           deductions={payslipDeductions}
           expenses={payslipExpenses}
+          attendance={payslipAttendance}
           onClose={() => setPayslipWorkerId(null)}
+          onUpdateWorker={onUpdateWorker}
+          onAddDeduction={onAddDeduction}
+          onRemoveDeduction={onRemoveDeduction}
+          onAddExpense={onAddExpense}
+          onRemoveExpense={onRemoveExpense}
+          onAddAttendance={onAddAttendance}
+          onRemoveAttendance={onRemoveAttendance}
         />
       )}
 

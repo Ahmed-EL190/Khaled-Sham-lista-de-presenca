@@ -516,6 +516,18 @@ export default function App() {
             payments={payments}
             onMarkPaid={markSalaryPaid}
             onMarkUnpaid={markSalaryUnpaid}
+            onUpdateWorker={updateWorker}
+            onAddDeduction={addDeduction}
+            onRemoveDeduction={removeDeduction}
+            onAddExpense={addExpense}
+            onRemoveExpense={removeExpense}
+            onAddAttendance={(r) =>
+              addLateRecord({
+                ...r,
+                checkIn: r.checkIn || new Date().toISOString(),
+              })
+            }
+            onRemoveAttendance={deleteRecord}
           />
         )}
 
