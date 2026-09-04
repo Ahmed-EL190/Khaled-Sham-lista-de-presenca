@@ -89,12 +89,12 @@ export default function PayrollAllSlipModal({
             min-width: 0 !important;
             table-layout: fixed !important;
             border-collapse: collapse !important;
-            font-size: 8px !important;
+            font-size: 7.5px !important;
           }
 
           .payroll-print-table th,
           .payroll-print-table td {
-            padding: 5px 3px !important;
+            padding: 4px 2px !important;
             border: 1px solid #777 !important;
             vertical-align: middle !important;
             overflow: hidden !important;
@@ -174,18 +174,18 @@ export default function PayrollAllSlipModal({
           <table className="payroll-print-table tabular w-full text-right text-xs">
             <colgroup>
               <col style={{ width: "3%" }} />
-              <col style={{ width: "13%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "8%" }} />
+              <col style={{ width: "15%" }} />
               <col style={{ width: "7%" }} />
-              <col style={{ width: "9%" }} />
+              <col style={{ width: "6%" }} />
+              <col style={{ width: "6%" }} />
+              <col style={{ width: "6%" }} />
               <col style={{ width: "8%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "9%" }} />
-              <col style={{ width: "9%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "8%" }} />
+              <col style={{ width: "6%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "7%" }} />
               <col style={{ width: "8%" }} />
             </colgroup>
 

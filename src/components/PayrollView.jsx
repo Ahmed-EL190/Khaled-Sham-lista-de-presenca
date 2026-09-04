@@ -24,6 +24,10 @@ function formatPaidAt(iso) {
   return `${date} - ${formatTime(iso)}`;
 }
 
+function sumBy(arr, key) {
+  return arr.reduce((sum, item) => sum + (item[key] || 0), 0);
+}
+
 export default function PayrollView({
   workers,
   records,
@@ -195,29 +199,48 @@ export default function PayrollView({
   const [showAllSlip, setShowAllSlip] = useState(false);
 
   function exportPayrollExcel() {
-    const rows = filteredSummaries.map((s) => ({
-      الاسم: s.name,
-      "المرتب الشهري": s.monthlyWage,
-      اليومية: roundDaily(s.dailyWage),
-      "أيام كاملة": s.fullDays,
-      الغياب: s.absentDays,
-      "أيام في إجازة رسمية اشتغل فيها": s.offDaysWorked,
+    const rows = filteredSummaries.map((s, i) => ({
+      "#": i + 1,
+      العامل: s.name,
+      "المرتب الأساسي": s.basicSalary,
+      "أيام كاملة": s.fullDays + s.offDaysWorked + s.paidHolidayDays,
       "إجازات مدفوعة": s.paidHolidayDays,
-      "الإجمالي المستحق": s.gross,
-      "بدل الأكل (Almoco)": s.almoco,
+      الغياب: s.absentDays,
+      "الأساسي المستحق": s.gross,
+      ALMOCO: s.almoco,
       الخصومات: s.deductionsTotal,
-      "المصروفات/السلف": s.expensesTotal,
+      السلف: s.expensesTotal,
       "الضمان الاجتماعي": s.hasInss ? s.inss : 0,
       الصافي: s.net,
-      "باقي عليه من سلفة": s.debtBalance || 0,
-      "الصافي بعد خصم السلفة": s.net - (s.debtBalance || 0),
-      الحالة: paidMap[s.workerId] ? "اتصرف" : "لسه",
-      "تاريخ الاستلام": paidMap[s.workerId]?.paidAt
-        ? formatPaidAt(paidMap[s.workerId].paidAt)
-        : "",
+      "باقي عليه سلفة": s.debtBalance || 0,
+      "الصافي بعد السلفة": s.net - (s.debtBalance || 0),
     }));
+
+    const totalsRow = {
+      "#": "",
+      العامل: "الإجمالي",
+      "المرتب الأساسي": sumBy(filteredSummaries, "basicSalary"),
+      "أيام كاملة": "",
+      "إجازات مدفوعة": "",
+      الغياب: "",
+      "الأساسي المستحق": sumBy(filteredSummaries, "gross"),
+      ALMOCO: sumBy(filteredSummaries, "almoco"),
+      الخصومات: sumBy(filteredSummaries, "deductionsTotal"),
+      السلف: sumBy(filteredSummaries, "expensesTotal"),
+      "الضمان الاجتماعي": filteredSummaries.reduce(
+        (sum, s) => sum + (s.hasInss ? s.inss || 0 : 0),
+        0,
+      ),
+      الصافي: sumBy(filteredSummaries, "net"),
+      "باقي عليه سلفة": sumBy(filteredSummaries, "debtBalance"),
+      "الصافي بعد السلفة": filteredSummaries.reduce(
+        (sum, s) => sum + (s.net || 0) - (s.debtBalance || 0),
+        0,
+      ),
+    };
+
     exportRowsToExcel(
-      rows,
+      [...rows, totalsRow],
       `رواتب - ${formatMonthLabel(selectedMonth)}`,
       "الرواتب",
     );
