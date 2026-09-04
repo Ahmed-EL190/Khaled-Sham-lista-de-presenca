@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import logo from "../assets/logo.png";
-import { formatDateLong, todayKey } from "../lib/format";
+import { formatDateLong, todayKey, formatTime } from "../lib/format";
 
 function money(n) {
   return `${Math.round(Number(n) || 0).toLocaleString("en-US")} Kz`;
@@ -10,6 +10,16 @@ function roundDaily(n) {
   return Math.round((Number(n) || 0) * 10) / 10;
 }
 
+function formatPaidAt(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("ar-EG-u-nu-latn", {
+    day: "numeric",
+    month: "short",
+  });
+  return `${date} - ${formatTime(iso)}`;
+}
+
 export default function PayslipModal({
   summary,
   monthLabel,
@@ -17,6 +27,9 @@ export default function PayslipModal({
   deductions,
   expenses,
   attendance = [],
+  isPaid = false,
+  paidAt = null,
+  onTogglePaid,
   onClose,
   onUpdateWorker,
   onAddDeduction,
@@ -383,6 +396,63 @@ export default function PayslipModal({
           </div>
         </div>
 
+        {/* Payment status */}
+        <div className="mt-3 flex items-center justify-between rounded-lg border border-line px-3 py-2">
+          <span className="text-xs font-semibold text-out">
+            حالة الاستلام
+          </span>
+
+          {onTogglePaid ? (
+            <button
+              onClick={onTogglePaid}
+              className="print-hide flex items-center gap-1.5"
+            >
+              {isPaid ? (
+                <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100">
+                  ✓ اتصرف
+                  {paidAt && (
+                    <span className="font-normal text-emerald-600">
+                      ({formatPaidAt(paidAt)})
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100">
+                  ● لسه ما استلمش
+                </span>
+              )}
+            </button>
+          ) : (
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                isPaid
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-amber-50 text-amber-700"
+              }`}
+            >
+              {isPaid ? "✓ اتصرف" : "● لسه ما استلمش"}
+            </span>
+          )}
+
+          {onTogglePaid && (
+            <span
+              className={`hidden rounded-full px-2.5 py-1 text-xs font-bold print:inline-block ${
+                isPaid
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-amber-50 text-amber-700"
+              }`}
+            >
+              {isPaid ? "✓ اتصرف" : "● لسه ما استلمش"}
+            </span>
+          )}
+        </div>
+
+        {onTogglePaid && (
+          <p className="print-hide mt-1 text-[10px] text-out">
+            دوس على الحالة فوق عشان تغيّرها
+          </p>
+        )}
+
         {/* Worker */}
         <div className="mt-4">
           <p className="text-xs text-out">اسم العامل</p>
@@ -392,11 +462,11 @@ export default function PayslipModal({
 
         {/* Salary */}
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-          {onUpdateWorker ? (
+          {onUpdateWorker && (
             <button
               onClick={editWage}
               title="دوس عشان تعدّل المرتب الأساسي"
-              className="rounded-lg bg-page px-3 py-2 text-right hover:bg-mist"
+              className="print-hide rounded-lg bg-page px-3 py-2 text-right hover:bg-mist"
             >
               <p className="text-xs text-out">المرتب الأساسي ✎</p>
 
@@ -404,15 +474,19 @@ export default function PayslipModal({
                 {money(summary.basicSalary)}
               </p>
             </button>
-          ) : (
-            <div className="rounded-lg bg-page px-3 py-2">
-              <p className="text-xs text-out">المرتب الأساسي</p>
-
-              <p className="tabular font-semibold text-ink">
-                {money(summary.basicSalary)}
-              </p>
-            </div>
           )}
+
+          <div
+            className={`rounded-lg bg-page px-3 py-2 ${
+              onUpdateWorker ? "hidden print:block" : ""
+            }`}
+          >
+            <p className="text-xs text-out">المرتب الأساسي</p>
+
+            <p className="tabular font-semibold text-ink">
+              {money(summary.basicSalary)}
+            </p>
+          </div>
 
           <div className="rounded-lg bg-page px-3 py-2">
             <p className="text-xs text-out">اليومية</p>
@@ -448,11 +522,11 @@ export default function PayslipModal({
             </p>
           </div>
 
-          {onUpdateWorker ? (
+          {onUpdateWorker && (
             <button
               onClick={editAlmoco}
               title="دوس عشان تعدّل ALMOCO"
-              className="rounded-lg bg-page px-3 py-2 text-right hover:bg-mist"
+              className="print-hide rounded-lg bg-page px-3 py-2 text-right hover:bg-mist"
             >
               <p className="text-xs text-out">ALMOCO ✎</p>
 
@@ -460,15 +534,19 @@ export default function PayslipModal({
                 {money(summary.almoco)}
               </p>
             </button>
-          ) : (
-            <div className="rounded-lg bg-page px-3 py-2">
-              <p className="text-xs text-out">ALMOCO</p>
-
-              <p className="tabular font-semibold text-in">
-                {money(summary.almoco)}
-              </p>
-            </div>
           )}
+
+          <div
+            className={`rounded-lg bg-page px-3 py-2 ${
+              onUpdateWorker ? "hidden print:block" : ""
+            }`}
+          >
+            <p className="text-xs text-out">ALMOCO</p>
+
+            <p className="tabular font-semibold text-in">
+              {money(summary.almoco)}
+            </p>
+          </div>
         </div>
 
         {/* Basic salary earned (شامل ALMOCO حسب الحضور) */}
@@ -489,9 +567,9 @@ export default function PayslipModal({
           </p>
         )}
 
-        {/* Attendance / تصحيح الغياب */}
+        {/* Attendance / تصحيح الغياب — أداة تعديل، مش هتظهر في الطباعة */}
         {(onAddAttendance || attendance.length > 0) && (
-          <div className="mt-4">
+          <div className="print-hide mt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold text-out">
                 أيام الحضور المسجلة ({attendance.length})
@@ -677,6 +755,22 @@ export default function PayslipModal({
 
               <span className="tabular text-lg font-black text-rose-700">
                 {money(summary.debtBalance)}
+              </span>
+            </div>
+
+            <div className="mt-2 flex items-center justify-between border-t border-rose-200 pt-2">
+              <span className="text-xs font-bold text-ink">
+                الصافي بعد خصم السلفة
+              </span>
+
+              <span
+                className={`tabular text-base font-black ${
+                  summary.net - summary.debtBalance < 0
+                    ? "text-red-600"
+                    : "text-ink"
+                }`}
+              >
+                {money(summary.net - summary.debtBalance)}
               </span>
             </div>
 

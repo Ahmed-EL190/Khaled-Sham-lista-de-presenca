@@ -33,8 +33,15 @@ export default function PayrollAllSlipModal({
       expenses: 0,
       inss: 0,
       net: 0,
+      debtBalance: 0,
     },
   );
+
+  totals.debtBalance = summaries.reduce(
+    (sum, s) => sum + (s.debtBalance || 0),
+    0
+  );
+  totals.netAfterDebt = totals.net - totals.debtBalance;
 
   return createPortal(
     <div
@@ -178,6 +185,8 @@ export default function PayrollAllSlipModal({
               <col style={{ width: "9%" }} />
               <col style={{ width: "9%" }} />
               <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
             </colgroup>
 
             <thead>
@@ -194,6 +203,8 @@ export default function PayrollAllSlipModal({
                 <th>السلف</th>
                 <th>الضمان الاجتماعي</th>
                 <th>الصافي</th>
+                <th>باقي عليه سلفة</th>
+                <th>الصافي بعد السلفة</th>
               </tr>
             </thead>
 
@@ -245,6 +256,22 @@ export default function PayrollAllSlipModal({
                   <td className="px-2 py-2 font-black text-ink">
                     {money(s.net)}
                   </td>
+
+                  <td className="px-2 py-2 font-semibold text-rose-700">
+                    {s.debtBalance > 0 ? money(s.debtBalance) : "—"}
+                  </td>
+
+                  <td
+                    className={`px-2 py-2 font-black ${
+                      s.net - (s.debtBalance || 0) < 0
+                        ? "text-red-600"
+                        : "text-ink"
+                    }`}
+                  >
+                    {s.debtBalance > 0
+                      ? money(s.net - s.debtBalance)
+                      : money(s.net)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -277,6 +304,18 @@ export default function PayrollAllSlipModal({
                 </td>
 
                 <td className="px-2 py-2 font-black">{money(totals.net)}</td>
+
+                <td className="px-2 py-2 font-black text-rose-700">
+                  {totals.debtBalance > 0 ? money(totals.debtBalance) : "—"}
+                </td>
+
+                <td
+                  className={`px-2 py-2 font-black ${
+                    totals.netAfterDebt < 0 ? "text-red-600" : ""
+                  }`}
+                >
+                  {money(totals.netAfterDebt)}
+                </td>
               </tr>
             </tfoot>
           </table>

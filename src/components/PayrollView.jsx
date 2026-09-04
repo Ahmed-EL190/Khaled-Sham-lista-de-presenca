@@ -209,6 +209,8 @@ export default function PayrollView({
       "المصروفات/السلف": s.expensesTotal,
       "الضمان الاجتماعي": s.hasInss ? s.inss : 0,
       الصافي: s.net,
+      "باقي عليه من سلفة": s.debtBalance || 0,
+      "الصافي بعد خصم السلفة": s.net - (s.debtBalance || 0),
       الحالة: paidMap[s.workerId] ? "اتصرف" : "لسه",
       "تاريخ الاستلام": paidMap[s.workerId]?.paidAt
         ? formatPaidAt(paidMap[s.workerId].paidAt)
@@ -526,6 +528,9 @@ export default function PayrollView({
           deductions={payslipDeductions}
           expenses={payslipExpenses}
           attendance={payslipAttendance}
+          isPaid={!!paidMap[payslipWorkerId]}
+          paidAt={paidMap[payslipWorkerId]?.paidAt || null}
+          onTogglePaid={() => togglePaid(payslipSummary)}
           onClose={() => setPayslipWorkerId(null)}
           onUpdateWorker={onUpdateWorker}
           onAddDeduction={onAddDeduction}
