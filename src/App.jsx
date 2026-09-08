@@ -87,6 +87,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [pendingWorkerId, setPendingWorkerId] = useState(null);
   const [checkoutMode, setCheckoutMode] = useState(false);
+  const [isTabsOpen, setIsTabsOpen] = useState(false);
 
   const today = todayKey();
   const isOwner = session?.role === "owner";
@@ -197,11 +198,13 @@ export default function App() {
     setTab(newSession.role === "owner" ? "dashboard" : "today");
     setSearch("");
     setCheckoutMode(false);
+    setIsTabsOpen(false);
   }
 
   function handleLogout() {
     setSession(null);
     setCheckoutMode(false);
+    setIsTabsOpen(false);
   }
 
   function handlePunch(workerId) {
@@ -254,6 +257,22 @@ export default function App() {
     }
   }
 
+  const getTabIcon = (id) => {
+    const icons = {
+      dashboard: "🏠",
+      today: "📅",
+      history: "📋",
+      reports: "📊",
+      payroll: "💰",
+      logs: "📝",
+      manage: "⚙️",
+      late: "⏰",
+      deduction: "➖",
+      expense: "💳",
+    };
+    return icons[id] || "•";
+  };
+
   if (!authed) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-out">
@@ -302,19 +321,80 @@ export default function App() {
       )}
 
       <main className="mx-auto max-w-5xl px-3 py-4 sm:px-5 sm:py-6">
-        {/* Tabs - تحسين للشاشات الصغيرة */}
-        <nav className="mb-4 flex w-full flex-wrap gap-1 rounded-lg border border-line bg-white p-1 sm:mb-5">
-          {tabs.map((t) => (
+        {/* التبويبات - تصميم محسن للشاشات الكبيرة والموبايل */}
+        <nav className="mb-4 sm:mb-5">
+          {/* نسخة الموبايل - قائمة منسدلة */}
+          <div className="sm:hidden">
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex-1 min-w-[40px] rounded-md px-1.5 py-2 text-[10px] font-semibold transition sm:flex-none sm:px-3 sm:py-1.5 sm:text-xs md:text-sm ${
-                tab === t.id ? "bg-ink text-white" : "text-out hover:text-ink"
-              }`}
+              onClick={() => setIsTabsOpen(!isTabsOpen)}
+              className="flex w-full items-center justify-between rounded-lg border border-line bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm"
             >
-              {t.label}
+              <span className="flex items-center gap-2">
+                <span>{getTabIcon(tab)}</span>
+                <span>{tabs.find((t) => t.id === tab)?.label || "القائمة"}</span>
+              </span>
+              <svg
+                className={`h-5 w-5 transition-transform duration-200 ${
+                  isTabsOpen ? "rotate-180" : ""
+                }`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
-          ))}
+            {isTabsOpen && (
+              <div className="absolute z-20 mt-1 w-[calc(100%-24px)] rounded-lg border border-line bg-white shadow-xl">
+                {tabs.map((t, index) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setTab(t.id);
+                      setIsTabsOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-3 px-4 py-3 text-right text-sm font-semibold transition ${
+                      tab === t.id
+                        ? "bg-ink text-white"
+                        : "text-ink hover:bg-mist/50"
+                    } ${index !== tabs.length - 1 ? "border-b border-line" : ""}`}
+                  >
+                    <span className="text-lg">{getTabIcon(t.id)}</span>
+                    <span>{t.label}</span>
+                    {tab === t.id && (
+                      <span className="mr-auto text-white">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* نسخة الشاشات الكبيرة - تبويبات متجاوبة وجميلة */}
+          <div className="hidden sm:block">
+            <div className="flex flex-wrap items-center justify-center gap-1 rounded-2xl border border-line/60 bg-white/80 p-1.5 shadow-sm backdrop-blur-sm">
+              {tabs.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`group relative rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    tab === t.id
+                      ? "bg-linear-to-r from-ink to-gray-800 text-white shadow-lg shadow-ink/20"
+                      : "text-out hover:text-ink hover:bg-mist/50"
+                  }`}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <span className="text-base">{getTabIcon(t.id)}</span>
+                    <span>{t.label}</span>
+                  </span>
+                  {tab === t.id && (
+                    <span className="absolute inset-0 rounded-xl bg-linear-to-r from-ink to-gray-800 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         </nav>
 
         {tab === "dashboard" && isOwner && (
@@ -344,7 +424,9 @@ export default function App() {
                 <button
                   onClick={() => setCheckoutMode(false)}
                   className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition sm:flex-none sm:px-3 sm:text-sm ${
-                    !checkoutMode ? "bg-ink text-white" : "text-out hover:text-ink"
+                    !checkoutMode
+                      ? "bg-ink text-white"
+                      : "text-out hover:text-ink"
                   }`}
                 >
                   الكل
@@ -352,7 +434,9 @@ export default function App() {
                 <button
                   onClick={() => setCheckoutMode(true)}
                   className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition sm:flex-none sm:px-3 sm:text-sm ${
-                    checkoutMode ? "bg-ink text-white" : "text-out hover:text-ink"
+                    checkoutMode
+                      ? "bg-ink text-white"
+                      : "text-out hover:text-ink"
                   }`}
                 >
                   انصراف ({presentAtMySite.length})

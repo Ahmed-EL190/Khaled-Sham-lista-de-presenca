@@ -80,87 +80,124 @@ export default function DashboardView({
   }, [summaries]);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Top stat cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        <div className="rounded-xl border border-line bg-white p-4">
-          <p className="text-xs font-medium text-out">إجمالي العمال</p>
-          <p className="tabular mt-1 text-2xl font-black text-ink">{workers.length}</p>
+    <div className="flex flex-col gap-4 sm:gap-6">
+      {/* Top stat cards - تصميم محسن */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
+        <div className="group rounded-2xl border border-line/60 bg-white p-4 shadow-sm transition hover:shadow-md hover:border-steel/30 sm:p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-out sm:text-sm">إجمالي العمال</p>
+            <span className="text-lg opacity-60">👥</span>
+          </div>
+          <p className="tabular mt-1.5 text-2xl font-black text-ink sm:text-3xl">
+            {workers.length}
+          </p>
         </div>
+
         <button
           onClick={onGoToToday}
-          className="rounded-xl border border-line bg-white p-4 text-right transition hover:border-steel"
+          className="group rounded-2xl border border-line/60 bg-white p-4 text-right transition hover:shadow-md hover:border-emerald-300/50 sm:p-5"
         >
-          <p className="text-xs font-medium text-out">حاضر دلوقتي</p>
-          <p className="tabular mt-1 text-2xl font-black text-steel">{presentNow}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-out sm:text-sm">حاضر دلوقتي</p>
+            <span className="text-lg opacity-60">✅</span>
+          </div>
+          <p className="tabular mt-1.5 text-2xl font-black text-emerald-600 sm:text-3xl">
+            {presentNow}
+          </p>
         </button>
+
         <button
           onClick={onGoToToday}
-          className="rounded-xl border border-line bg-white p-4 text-right transition hover:border-steel"
+          className="group rounded-2xl border border-line/60 bg-white p-4 text-right transition hover:shadow-md hover:border-rose-300/50 sm:p-5"
         >
-          <p className="text-xs font-medium text-out">غايبين النهاردة</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-out sm:text-sm">غايبين النهاردة</p>
+            <span className="text-lg opacity-60">❌</span>
+          </div>
           <p
-            className={`tabular mt-1 text-2xl font-black ${
-              absentWorkers.length > 0 ? "text-red-600" : "text-ink"
+            className={`tabular mt-1.5 text-2xl font-black sm:text-3xl ${
+              absentWorkers.length > 0 ? "text-rose-600" : "text-ink"
             }`}
           >
             {absentWorkers.length}
           </p>
         </button>
-        <div className="rounded-xl border border-line bg-white p-4">
-          <p className="text-xs font-medium text-out">عدد الورش</p>
-          <p className="tabular mt-1 text-2xl font-black text-ink">{sites.length}</p>
+
+        <div className="group rounded-2xl border border-line/60 bg-white p-4 shadow-sm transition hover:shadow-md hover:border-steel/30 sm:p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-out sm:text-sm">عدد الورش</p>
+            <span className="text-lg opacity-60">🏗️</span>
+          </div>
+          <p className="tabular mt-1.5 text-2xl font-black text-ink sm:text-3xl">
+            {sites.length}
+          </p>
         </div>
       </div>
 
-      {/* Payroll summary for the current month */}
-      <div className="rounded-xl border border-line bg-white p-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-ink">مرتبات {formatMonthLabel(currentMonth)}</h3>
+      {/* Payroll summary - تصميم محسن مع تدرج لوني */}
+      <div className="rounded-2xl border border-line/60 bg-linear-to-br from-white to-gray-50/80 p-4 shadow-sm sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-bold text-ink sm:text-base">
+            📊 مرتبات {formatMonthLabel(currentMonth)}
+          </h3>
           <button
             onClick={onGoToPayroll}
-            className="text-xs font-semibold text-steel hover:underline"
+            className="flex items-center gap-1 rounded-lg bg-ink/5 px-3 py-1.5 text-xs font-semibold text-steel transition hover:bg-ink/10 hover:text-ink sm:gap-1.5 sm:px-4 sm:py-2 sm:text-sm"
           >
-            التفاصيل ←
+            التفاصيل
+            <span className="text-lg">→</span>
           </button>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-lg bg-page px-3 py-3">
-            <p className="text-xs text-out">إجمالي المستحق</p>
-            <p className="tabular mt-1 text-lg font-bold text-ink">{money(totals.gross)}</p>
+        
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+          <div className="rounded-xl bg-white/80 px-3 py-3 shadow-sm ring-1 ring-line/50 sm:px-4 sm:py-3.5">
+            <p className="text-[10px] font-medium text-out sm:text-xs">إجمالي المستحق</p>
+            <p className="tabular mt-1 text-base font-bold text-ink sm:text-lg">
+              {money(totals.gross)}
+            </p>
           </div>
-          <div className="rounded-lg bg-page px-3 py-3">
-            <p className="text-xs text-out">الخصومات</p>
-            <p className="tabular mt-1 text-lg font-bold text-red-600">
+          <div className="rounded-xl bg-white/80 px-3 py-3 shadow-sm ring-1 ring-line/50 sm:px-4 sm:py-3.5">
+            <p className="text-[10px] font-medium text-out sm:text-xs">الخصومات</p>
+            <p className="tabular mt-1 text-base font-bold text-rose-600 sm:text-lg">
               {totals.deductions > 0 ? `-${money(totals.deductions)}` : "—"}
             </p>
           </div>
-          <div className="rounded-lg bg-page px-3 py-3">
-            <p className="text-xs text-out">المصروفات/السلف</p>
-            <p className="tabular mt-1 text-lg font-bold text-orange-600">
+          <div className="rounded-xl bg-white/80 px-3 py-3 shadow-sm ring-1 ring-line/50 sm:px-4 sm:py-3.5">
+            <p className="text-[10px] font-medium text-out sm:text-xs">المصروفات/السلف</p>
+            <p className="tabular mt-1 text-base font-bold text-amber-600 sm:text-lg">
               {totals.expenses > 0 ? `-${money(totals.expenses)}` : "—"}
             </p>
           </div>
-          <div className="rounded-lg bg-mist px-3 py-3">
-            <p className="text-xs text-steel">الصافي المطلوب صرفه</p>
-            <p className="tabular mt-1 text-lg font-black text-steel">{money(totals.net)}</p>
+          <div className="rounded-xl bg-linear-to-br from-ink to-gray-800 px-3 py-3 shadow-lg shadow-ink/10 sm:px-4 sm:py-3.5">
+            <p className="text-[10px] font-medium text-white/70 sm:text-xs">الصافي المطلوب</p>
+            <p className="tabular mt-1 text-base font-bold text-white sm:text-lg">
+              {money(totals.net)}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Per-site breakdown */}
+      {/* Per-site breakdown - تصميم محسن */}
       {sites.length > 0 && (
-        <div className="rounded-xl border border-line bg-white p-4">
-          <h3 className="mb-3 text-sm font-bold text-ink">الورش دلوقتي</h3>
+        <div className="rounded-2xl border border-line/60 bg-white p-4 shadow-sm sm:p-5">
+          <h3 className="mb-3 text-sm font-bold text-ink sm:text-base">
+            🏭 الورش دلوقتي
+          </h3>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {siteStats.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center justify-between rounded-lg bg-page px-3 py-2.5"
+                className="group flex items-center justify-between rounded-xl bg-linear-to-br from-gray-50 to-white px-3 py-2.5 transition hover:shadow-md hover:border-steel/30 ring-1 ring-line/50 sm:px-4 sm:py-3"
               >
-                <p className="text-sm font-semibold text-ink">{s.name}</p>
-                <span className="tabular rounded-full bg-mist px-2.5 py-1 text-xs font-bold text-steel">
-                  {s.present} في الورشة
+                <p className="text-sm font-semibold text-ink sm:text-base">
+                  {s.name}
+                </p>
+                <span className={`tabular rounded-full px-2.5 py-1 text-xs font-bold ${
+                  s.present > 0 
+                    ? "bg-emerald-100 text-emerald-700" 
+                    : "bg-mist text-steel"
+                } sm:px-3 sm:text-sm`}>
+                  {s.present} 👷
                 </span>
               </div>
             ))}
@@ -168,20 +205,26 @@ export default function DashboardView({
         </div>
       )}
 
-      {/* Absent list */}
+      {/* Absent list - تصميم محسن */}
       {absentWorkers.length > 0 && (
-        <div className="rounded-xl border border-line bg-white p-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-ink">لسه ما جوش النهاردة</h3>
-            <button onClick={onGoToToday} className="text-xs font-semibold text-steel hover:underline">
-              عرض الكل ←
+        <div className="rounded-2xl border border-rose-200/60 bg-linear-to-br from-rose-50/50 to-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-rose-800 sm:text-base">
+              ⚠️ لسه ما جوش النهاردة
+            </h3>
+            <button
+              onClick={onGoToToday}
+              className="flex items-center gap-1 rounded-lg bg-rose-100/50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 sm:gap-1.5 sm:px-4 sm:py-2 sm:text-sm"
+            >
+              عرض الكل
+              <span className="text-lg">→</span>
             </button>
           </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-1.5 sm:gap-2">
             {absentWorkers.map((w) => (
               <span
                 key={w.id}
-                className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700"
+                className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 shadow-sm transition hover:shadow-md sm:px-3.5 sm:py-2 sm:text-sm"
               >
                 {w.name}
               </span>

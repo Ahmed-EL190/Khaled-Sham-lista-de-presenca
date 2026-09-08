@@ -455,7 +455,7 @@ export default function PayrollView({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        <p className="min-w-0 break-words text-sm font-bold text-ink sm:text-base">
+                        <p className="min-w-0 wrap-break-word text-sm font-bold text-ink sm:text-base">
                           {s.name}
                         </p>
                         {paidMap[s.workerId] ? (

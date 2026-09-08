@@ -85,31 +85,43 @@ export default function UpdatePrompt() {
   if (!versionMismatch && !offlineReady) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
-      <div className="flex w-full max-w-md items-center gap-3 rounded-xl border border-line bg-white p-3 shadow-lg">
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-3 sm:px-4 sm:pb-4">
+      <div className="flex w-full max-w-md items-center gap-2 rounded-2xl border border-line/60 bg-white/95 p-3 shadow-2xl shadow-ink/10 backdrop-blur-sm transition-all sm:gap-3 sm:p-4">
         {versionMismatch ? (
           <>
-            <span className="flex-1 text-xs font-semibold text-ink">
-              🔄 في نسخة جديدة من التطبيق — حدّث دلوقتي؟
+            <span className="flex-1 text-xs font-semibold text-ink sm:text-sm">
+              <span className="mr-1.5 text-lg">🔄</span>
+              في نسخة جديدة من التطبيق — حدّث دلوقتي؟
             </span>
             <button
               type="button"
               onClick={handleUpdate}
               disabled={updating}
-              className="rounded-lg bg-steel px-3 py-1.5 text-xs font-bold text-white hover:bg-steel-light disabled:opacity-60"
+              className="rounded-xl bg-linear-to-r from-ink to-gray-800 px-4 py-2 text-xs font-bold text-white transition hover:shadow-lg hover:shadow-ink/20 disabled:opacity-60 disabled:hover:shadow-none sm:px-5 sm:py-2.5 sm:text-sm"
             >
-              {updating ? "بيحدّث…" : "تحديث"}
+              {updating ? (
+                <span className="flex items-center gap-1.5">
+                  <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  بيحدّث…
+                </span>
+              ) : (
+                "تحديث"
+              )}
             </button>
           </>
         ) : (
           <>
-            <span className="flex-1 text-xs font-semibold text-ink">
-              ✅ التطبيق بقى جاهز يشتغل من غير نت
+            <span className="flex-1 text-xs font-semibold text-ink sm:text-sm">
+              <span className="mr-1.5 text-lg">✅</span>
+              التطبيق بقى جاهز يشتغل من غير نت
             </span>
             <button
               type="button"
               onClick={closeOfflineReady}
-              className="rounded-lg px-2 py-1.5 text-xs font-semibold text-out hover:bg-out-soft"
+              className="rounded-xl border border-line/60 px-3 py-1.5 text-xs font-semibold text-out transition hover:bg-page hover:text-ink sm:px-4 sm:py-2 sm:text-sm"
             >
               تمام
             </button>

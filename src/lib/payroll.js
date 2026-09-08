@@ -771,3 +771,12 @@ export function buildSiteCostAllocation(
 
   return finalSites.sort((a, b) => b.totalCost - a.totalCost);
 }
+// في نهاية الملف
+export default {
+  buildPayrollSummaries,
+  computeAbsenceDays,
+  buildSiteCostAllocation,
+  dayType,
+  countScheduledOffDaysInMonth,
+  dailyWageFromMonthly,
+};

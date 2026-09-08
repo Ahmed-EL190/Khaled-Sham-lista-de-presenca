@@ -45,12 +45,11 @@ export default function PayrollAllSlipModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 px-4 py-6 print:static print:block print:overflow-visible print:bg-white print:p-0"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 px-3 py-4 print:static print:block print:overflow-visible print:bg-white print:p-0 sm:px-4 sm:py-6"
       onClick={onClose}
     >
       <style>{`
         @media print {
-
           html,
           body {
             margin: 0 !important;
@@ -133,48 +132,48 @@ export default function PayrollAllSlipModal({
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="payroll-all-print w-full max-w-6xl rounded-2xl bg-white p-6 shadow-lg print:max-w-none print:rounded-none print:p-0"
+        className="payroll-all-print w-full max-w-6xl rounded-2xl bg-white p-4 shadow-lg print:max-w-none print:rounded-none print:p-0 sm:p-6"
       >
         {/* Buttons */}
-        <div className="print-hide mb-4 flex items-center justify-end gap-2">
+        <div className="print-hide mb-4 flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={() => window.print()}
-            className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-ink-soft"
+            className="rounded-xl bg-linear-to-r from-ink to-gray-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:shadow-lg hover:shadow-ink/20 sm:px-6 sm:py-2.5"
           >
-            طباعة / PDF
+            🖨️ طباعة / PDF
           </button>
 
           <button
             onClick={onClose}
-            className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-out hover:bg-page"
+            className="rounded-xl border border-line/60 px-4 py-2.5 text-sm font-semibold text-out transition hover:bg-page sm:px-6 sm:py-2.5"
           >
-            إغلاق
+            ✕ إغلاق
           </button>
         </div>
 
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-line pb-4 print:pb-2">
-          <img
-            src={logo}
-            alt=""
-            className="h-12 w-12 object-contain print:h-10 print:w-10"
-          />
+        <div className="flex items-center gap-3 border-b border-line/60 pb-4 print:pb-2">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-ink to-gray-800 p-1.5 shadow-md shadow-ink/10 print:h-10 print:w-10">
+            <img src={logo} alt="" className="h-full w-full object-contain" />
+          </div>
 
           <div>
-            <h2 className="text-base font-black text-ink print:text-sm">
+            <h2 className="text-base font-black text-ink print:text-sm sm:text-lg">
               كشف مرتبات — كل العمال
             </h2>
 
-            <p className="text-xs text-out print:text-[9px]">{monthLabel}</p>
+            <p className="text-xs text-out/70 print:text-[9px] sm:text-sm">
+              📅 {monthLabel}
+            </p>
           </div>
         </div>
 
         {/* Table */}
-        <div className="payroll-print-table-wrapper mt-4 overflow-x-auto print:mt-2">
-          <table className="payroll-print-table tabular w-full text-right text-xs">
+        <div className="payroll-print-table-wrapper mt-4 overflow-x-auto rounded-xl border border-line/60 print:mt-2 print:border-0">
+          <table className="payroll-print-table tabular w-full min-w-225 text-right text-xs">
             <colgroup>
               <col style={{ width: "3%" }} />
-              <col style={{ width: "15%" }} />
+              <col style={{ width: "13%" }} />
               <col style={{ width: "7%" }} />
               <col style={{ width: "6%" }} />
               <col style={{ width: "6%" }} />
@@ -190,81 +189,83 @@ export default function PayrollAllSlipModal({
             </colgroup>
 
             <thead>
-              <tr className="border-b border-line bg-page text-out">
-                <th>#</th>
-                <th>العامل</th>
-                <th>المرتب الأساسي</th>
-                <th>أيام كاملة</th>
-                <th>إجازات مدفوعة</th>
-                <th>الغياب</th>
-                <th>الأساسي المستحق</th>
-                <th>ALMOCO</th>
-                <th>الخصومات</th>
-                <th>السلف</th>
-                <th>الضمان الاجتماعي</th>
-                <th>الصافي</th>
-                <th>باقي عليه سلفة</th>
-                <th>الصافي بعد السلفة</th>
+              <tr className="border-b border-line/60 bg-mist/50 text-out">
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">#</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">العامل</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">المرتب الأساسي</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">أيام</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">إجازات</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">الغياب</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">المستحق</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">ALMOCO</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">الخصومات</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">السلف</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">INSS</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">الصافي</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">باقي دين</th>
+                <th className="px-2 py-2.5 text-[10px] font-semibold sm:px-3 sm:text-xs">الصافي بعد الدين</th>
               </tr>
             </thead>
 
-            <tbody>
+            <tbody className="divide-y divide-line/40">
               {summaries.map((s, i) => (
-                <tr key={s.workerId}>
-                  <td className="px-2 py-2 text-ink-soft">{i + 1}</td>
+                <tr key={s.workerId} className="hover:bg-mist/20 transition">
+                  <td className="px-2 py-2 text-center text-ink-soft sm:px-3 sm:py-2.5">
+                    {i + 1}
+                  </td>
 
-                  <td className="name-cell px-2 py-2 font-semibold text-ink">
+                  <td className="name-cell px-2 py-2 font-semibold text-ink sm:px-3 sm:py-2.5">
                     {s.name}
                   </td>
 
-                  <td className="px-2 py-2 text-ink-soft">
+                  <td className="px-2 py-2 text-ink-soft sm:px-3 sm:py-2.5">
                     {money(s.basicSalary)}
                   </td>
 
-                  <td className="px-2 py-2 text-ink-soft">
+                  <td className="px-2 py-2 text-ink-soft sm:px-3 sm:py-2.5">
                     {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
                   </td>
 
-                  <td className="px-2 py-2 text-ink-soft">
-                    {s.paidHolidayDays}
+                  <td className="px-2 py-2 text-ink-soft sm:px-3 sm:py-2.5">
+                    {s.paidHolidayDays > 0 ? s.paidHolidayDays : "—"}
                   </td>
 
-                  <td className="px-2 py-2 text-red-600">
+                  <td className="px-2 py-2 text-rose-600 sm:px-3 sm:py-2.5">
                     {s.absentDays > 0 ? s.absentDays : "—"}
                   </td>
 
-                  <td className="px-2 py-2 text-ink-soft">{money(s.gross)}</td>
+                  <td className="px-2 py-2 font-medium text-ink sm:px-3 sm:py-2.5">
+                    {money(s.gross)}
+                  </td>
 
-                  <td className="px-2 py-2 font-semibold text-in">
+                  <td className="px-2 py-2 font-semibold text-emerald-600 sm:px-3 sm:py-2.5">
                     {s.almoco > 0 ? money(s.almoco) : "—"}
                   </td>
 
-                  <td className="px-2 py-2 text-red-600">
-                    {s.deductionsTotal > 0
-                      ? `-${money(s.deductionsTotal)}`
-                      : "—"}
+                  <td className="px-2 py-2 text-rose-600 sm:px-3 sm:py-2.5">
+                    {s.deductionsTotal > 0 ? `-${money(s.deductionsTotal)}` : "—"}
                   </td>
 
-                  <td className="px-2 py-2 text-orange-600">
+                  <td className="px-2 py-2 text-orange-600 sm:px-3 sm:py-2.5">
                     {s.expensesTotal > 0 ? `-${money(s.expensesTotal)}` : "—"}
                   </td>
 
-                  <td className="px-2 py-2 text-purple-700">
+                  <td className="px-2 py-2 text-purple-600 sm:px-3 sm:py-2.5">
                     {s.hasInss ? `-${money(s.inss)}` : "—"}
                   </td>
 
-                  <td className="px-2 py-2 font-black text-ink">
+                  <td className="px-2 py-2 font-black text-ink sm:px-3 sm:py-2.5">
                     {money(s.net)}
                   </td>
 
-                  <td className="px-2 py-2 font-semibold text-rose-700">
+                  <td className="px-2 py-2 font-semibold text-rose-700 sm:px-3 sm:py-2.5">
                     {s.debtBalance > 0 ? money(s.debtBalance) : "—"}
                   </td>
 
                   <td
-                    className={`px-2 py-2 font-black ${
+                    className={`px-2 py-2 font-black sm:px-3 sm:py-2.5 ${
                       s.net - (s.debtBalance || 0) < 0
-                        ? "text-red-600"
+                        ? "text-rose-600"
                         : "text-ink"
                     }`}
                   >
@@ -278,40 +279,44 @@ export default function PayrollAllSlipModal({
 
             {/* Total */}
             <tfoot>
-              <tr className="bg-page font-bold">
-                <td colSpan="2" className="px-2 py-2">
+              <tr className="bg-linear-to-r from-mist/80 to-mist/30 font-bold border-t-2 border-ink/20">
+                <td colSpan="2" className="px-2 py-2.5 text-sm sm:px-3">
                   الإجمالي
                 </td>
 
-                <td className="px-2 py-2">{money(totals.basicSalary)}</td>
+                <td className="px-2 py-2.5 sm:px-3">{money(totals.basicSalary)}</td>
 
-                <td colSpan="3"></td>
+                <td colSpan="3" className="px-2 py-2.5 sm:px-3"></td>
 
-                <td className="px-2 py-2">{money(totals.gross)}</td>
+                <td className="px-2 py-2.5 sm:px-3">{money(totals.gross)}</td>
 
-                <td className="px-2 py-2 text-in">{money(totals.almoco)}</td>
+                <td className="px-2 py-2.5 text-emerald-600 sm:px-3">
+                  {money(totals.almoco)}
+                </td>
 
-                <td className="px-2 py-2 text-red-600">
+                <td className="px-2 py-2.5 text-rose-600 sm:px-3">
                   {totals.deductions > 0 ? `-${money(totals.deductions)}` : "—"}
                 </td>
 
-                <td className="px-2 py-2 text-orange-600">
+                <td className="px-2 py-2.5 text-orange-600 sm:px-3">
                   {totals.expenses > 0 ? `-${money(totals.expenses)}` : "—"}
                 </td>
 
-                <td className="px-2 py-2 text-purple-700">
+                <td className="px-2 py-2.5 text-purple-600 sm:px-3">
                   {totals.inss > 0 ? `-${money(totals.inss)}` : "—"}
                 </td>
 
-                <td className="px-2 py-2 font-black">{money(totals.net)}</td>
+                <td className="px-2 py-2.5 font-black text-ink sm:px-3">
+                  {money(totals.net)}
+                </td>
 
-                <td className="px-2 py-2 font-black text-rose-700">
+                <td className="px-2 py-2.5 font-black text-rose-700 sm:px-3">
                   {totals.debtBalance > 0 ? money(totals.debtBalance) : "—"}
                 </td>
 
                 <td
-                  className={`px-2 py-2 font-black ${
-                    totals.netAfterDebt < 0 ? "text-red-600" : ""
+                  className={`px-2 py-2.5 font-black sm:px-3 ${
+                    totals.netAfterDebt < 0 ? "text-rose-600" : "text-ink"
                   }`}
                 >
                   {money(totals.netAfterDebt)}
@@ -321,8 +326,8 @@ export default function PayrollAllSlipModal({
           </table>
         </div>
 
-        <p className="mt-3 text-center text-[10px] text-out print:mt-2 print:text-[8px]">
-          تم إصدار الكشف بتاريخ {formatDateLong(todayKey())}
+        <p className="mt-3 text-center text-[10px] text-out/50 print:mt-2 print:text-[8px] sm:text-xs">
+          📄 تم إصدار الكشف بتاريخ {formatDateLong(todayKey())}
         </p>
       </div>
     </div>,

@@ -54,72 +54,105 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
   );
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-4">
-      <div className="rounded-xl border border-line bg-white p-5">
-        <h3 className="text-sm font-bold text-ink">تسجيل خصم على عامل</h3>
+    <div className="mx-auto flex max-w-2xl flex-col gap-4 sm:gap-5">
+      {/* نموذج التسجيل */}
+      <div className="rounded-2xl border border-line/60 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex items-center gap-2 border-b border-line/60 pb-3">
+          <span className="text-xl">➖</span>
+          <h3 className="text-sm font-bold text-ink sm:text-base">تسجيل خصم على عامل</h3>
+        </div>
 
-        <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">العامل</label>
-            <WorkerPicker workers={workers} value={workerId} onChange={setWorkerId} />
+        <form onSubmit={submit} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium text-out sm:text-xs">العامل *</label>
+            <WorkerPicker 
+              workers={workers} 
+              value={workerId} 
+              onChange={setWorkerId} 
+              className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
+            />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">التاريخ</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium text-out sm:text-xs">التاريخ *</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="tabular rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">المبلغ</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium text-out sm:text-xs">المبلغ *</label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0"
-              className="tabular rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">السبب (اختياري)</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium text-out sm:text-xs">السبب (اختياري)</label>
             <input
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="مثلاً: تأخير"
-              className="rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={!workerId || !amount}
-            className="rounded-lg bg-ink py-2.5 text-sm font-bold text-white transition hover:bg-ink-soft disabled:opacity-40"
-          >
-            تسجيل الخصم
-          </button>
+          <div className="sm:col-span-2">
+            <button
+              type="submit"
+              disabled={!workerId || !amount}
+              className="w-full rounded-xl bg-linear-to-r from-ink to-gray-800 py-3 text-sm font-bold text-white transition hover:shadow-lg hover:shadow-ink/20 disabled:opacity-40 disabled:hover:shadow-none sm:py-3.5 sm:text-base"
+            >
+              تسجيل الخصم
+            </button>
+          </div>
 
-          {done && <p className="text-center text-xs font-semibold text-in">تم تسجيل الخصم ✓</p>}
+          {done && (
+            <div className="sm:col-span-2">
+              <p className="rounded-xl bg-emerald-50 py-2.5 text-center text-xs font-semibold text-emerald-700 sm:text-sm">
+                ✅ تم تسجيل الخصم بنجاح
+              </p>
+            </div>
+          )}
         </form>
       </div>
 
+      {/* قائمة الخصومات */}
       {sortedDeductions.length > 0 && (
-        <div className="rounded-xl border border-line bg-white p-5">
-          <h3 className="text-sm font-bold text-ink">الخصومات المسجلة</h3>
-          <ul className="mt-2 flex flex-col divide-y divide-line">
+        <div className="rounded-2xl border border-line/60 bg-white p-4 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between border-b border-line/60 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📋</span>
+              <h3 className="text-sm font-bold text-ink sm:text-base">الخصومات المسجلة</h3>
+            </div>
+            <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-700">
+              {sortedDeductions.length}
+            </span>
+          </div>
+
+          <ul className="mt-3 divide-y divide-line/60">
             {sortedDeductions.map((d) => (
-              <li key={d.id} className="flex items-center justify-between gap-2 py-2 text-sm">
-                <div>
-                  <p className="font-medium text-ink">
-                    {d.workerName} <span className="text-out">— {formatDateLong(d.dateKey)}</span>
+              <li key={d.id} className="flex flex-col gap-2 py-3 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink sm:text-base">
+                    {d.workerName}
+                    <span className="mr-2 text-xs font-normal text-out">
+                      — {formatDateLong(d.dateKey)}
+                    </span>
                   </p>
-                  {d.reason && <p className="text-xs text-out">{d.reason}</p>}
+                  {d.reason && (
+                    <p className="mt-0.5 text-xs text-out/70">{d.reason}</p>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="flex flex-wrap items-center gap-2">
                   {editingId === d.id ? (
                     <>
                       <input
@@ -131,36 +164,44 @@ export default function DeductionForm({ workers, deductions = [], onSubmit, onRe
                           if (e.key === "Enter") saveEdit(d);
                           if (e.key === "Escape") setEditingId(null);
                         }}
-                        className="tabular w-20 rounded-lg border border-steel bg-white px-2 py-1 text-sm text-ink outline-none"
+                        className="w-24 rounded-lg border border-steel/60 bg-white px-2 py-1.5 text-sm text-ink outline-none focus:border-steel focus:ring-2 focus:ring-steel/20"
                       />
                       <button
                         onClick={() => saveEdit(d)}
-                        className="rounded-md px-2 py-1 text-xs font-semibold text-in hover:bg-page"
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
                       >
                         حفظ
                       </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="rounded-lg border border-line/60 px-3 py-1.5 text-xs font-semibold text-out transition hover:bg-page"
+                      >
+                        إلغاء
+                      </button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => startEdit(d)}
-                      disabled={!onUpdateDeduction}
-                      title="دوس تعدل المبلغ"
-                      className="tabular font-bold text-red-600 hover:underline disabled:no-underline"
-                    >
-                      -{money(d.amount)}
-                    </button>
-                  )}
-                  {onRemoveDeduction && (
-                    <button
-                      onClick={() => {
-                        if (window.confirm("متأكد إنك عايز تمسح الخصم ده؟")) {
-                          onRemoveDeduction(d.id);
-                        }
-                      }}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-out hover:bg-page hover:text-red-600"
-                    >
-                      حذف
-                    </button>
+                    <>
+                      <button
+                        onClick={() => startEdit(d)}
+                        disabled={!onUpdateDeduction}
+                        title="دوس تعدل المبلغ"
+                        className="tabular rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50 sm:text-base"
+                      >
+                        -{money(d.amount)}
+                      </button>
+                      {onRemoveDeduction && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm("متأكد إنك عايز تمسح الخصم ده؟")) {
+                              onRemoveDeduction(d.id);
+                            }
+                          }}
+                          className="rounded-lg border border-line/60 px-2.5 py-1.5 text-xs font-medium text-out transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                        >
+                          حذف
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </li>

@@ -21,7 +21,11 @@ export default function ReportsView({
   onRemoveDeduction,
   onRemoveExpense,
 }) {
-  const [mode, setMode] = useState("worker"); // "worker" | "site"
+  const [mode, setMode] = useState("worker");
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedWorkerId, setSelectedWorkerId] = useState("all");
+  const [selectedDay, setSelectedDay] = useState("all");
+  const [siteSearch, setSiteSearch] = useState("");
 
   const monthKeys = useMemo(() => {
     const set = new Set(
@@ -36,10 +40,13 @@ export default function ReportsView({
 
   const currentMonth = todayKey().slice(0, 7);
   const defaultMonth = monthKeys.includes(currentMonth) ? currentMonth : "all";
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
-  const [selectedWorkerId, setSelectedWorkerId] = useState("all");
-  const [selectedDay, setSelectedDay] = useState("all");
-  const [siteSearch, setSiteSearch] = useState("");
+
+  // تحديث الشهر الافتراضي عند تحميل البيانات
+  useMemo(() => {
+    if (selectedMonth === "all" && monthKeys.length > 0) {
+      // نستخدم useEffect بدلاً من ذلك
+    }
+  }, [monthKeys]);
 
   const filteredRecords = useMemo(() => {
     if (selectedMonth === "all") return records;
@@ -56,7 +63,6 @@ export default function ReportsView({
     return expenses.filter((e) => e.dateKey?.startsWith(selectedMonth));
   }, [expenses, selectedMonth]);
 
-  // list of individual days available inside the selected month, for the "يوم بيوم" filter
   const dayKeys = useMemo(() => {
     const set = new Set(
       [
@@ -86,8 +92,6 @@ export default function ReportsView({
     [workers, dayFilteredRecords]
   );
 
-  // عدد أيام الغياب لكل عامل — بيتحسب على شهر كامل (مش على فلتر اليوم)، وبيظهر
-  // بس لما يكون فيه شهر محدد (مش "كل الوقت")
   const workerAbsences = useMemo(() => {
     if (selectedMonth === "all") return {};
     const map = {};
@@ -96,12 +100,12 @@ export default function ReportsView({
     }
     return map;
   }, [workers, filteredRecords, schedule, selectedMonth]);
+
   const siteDailyReports = useMemo(
     () => buildSiteDailyReports(sites, dayFilteredRecords, dayFilteredDeductions, dayFilteredExpenses),
     [sites, dayFilteredRecords, dayFilteredDeductions, dayFilteredExpenses]
   );
 
-  // grand totals across all workshops shown here — this is the "الإدارة/كل الورش" view
   const grandTotals = useMemo(
     () =>
       siteDailyReports.reduce(
@@ -116,7 +120,6 @@ export default function ReportsView({
     [siteDailyReports]
   );
 
-  // worker options: current roster + anyone who appears in the records but isn't in the roster anymore
   const workerOptions = useMemo(() => {
     const map = new Map(workers.map((w) => [w.id, w.name]));
     for (const r of filteredRecords) {
@@ -211,46 +214,54 @@ export default function ReportsView({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex w-fit rounded-lg border border-line bg-white p-1">
+    <div className="flex flex-col gap-4 sm:gap-5">
+      {/* Controls */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        {/* Mode toggle */}
+        <div className="flex w-full rounded-2xl border border-line/60 bg-white/80 p-1 shadow-sm sm:w-fit">
           <button
             onClick={() => setMode("worker")}
-            className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-              mode === "worker" ? "bg-ink text-white" : "text-out hover:text-ink"
+            className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition sm:flex-none sm:px-5 sm:py-2.5 sm:text-sm ${
+              mode === "worker"
+                ? "bg-linear-to-r from-ink to-gray-800 text-white shadow-md shadow-ink/20"
+                : "text-out hover:text-ink hover:bg-mist/50"
             }`}
           >
-            حسب العامل
+            👤 حسب العامل
           </button>
           <button
             onClick={() => setMode("site")}
-            className={`rounded-md px-4 py-1.5 text-sm font-semibold transition ${
-              mode === "site" ? "bg-ink text-white" : "text-out hover:text-ink"
+            className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition sm:flex-none sm:px-5 sm:py-2.5 sm:text-sm ${
+              mode === "site"
+                ? "bg-linear-to-r from-ink to-gray-800 text-white shadow-md shadow-ink/20"
+                : "text-out hover:text-ink hover:bg-mist/50"
             }`}
           >
-            حسب الورشة
+            🏭 حسب الورشة
           </button>
         </div>
 
+        {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           {mode === "site" && (
-            <div className="w-48">
+            <div className="w-full sm:w-48">
               <input
                 value={siteSearch}
                 onChange={(e) => setSiteSearch(e.target.value)}
-                placeholder="ابحث باسم الورشة"
-                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+                placeholder="🔍 ابحث باسم الورشة"
+                className="w-full rounded-xl border border-line/60 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20"
               />
             </div>
           )}
           {mode === "worker" && (
-            <div className="w-48">
+            <div className="w-full sm:w-48">
               <WorkerPicker
                 workers={workerOptions}
                 value={selectedWorkerId}
                 onChange={setSelectedWorkerId}
                 allowAll
-                allLabel="كل العمال"
+                allLabel="👥 كل العمال"
+                className="w-full rounded-xl border border-line/60 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20"
               />
             </div>
           )}
@@ -261,9 +272,9 @@ export default function ReportsView({
               setSelectedMonth(e.target.value);
               setSelectedDay("all");
             }}
-            className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-ink outline-none focus:border-steel"
+            className="rounded-xl border border-line/60 bg-white px-3 py-2 text-sm font-medium text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20"
           >
-            <option value="all">كل الوقت</option>
+            <option value="all">📅 كل الوقت</option>
             {monthKeys.map((m) => (
               <option key={m} value={m}>
                 {formatMonthLabel(m)}
@@ -274,9 +285,9 @@ export default function ReportsView({
           <select
             value={selectedDay}
             onChange={(e) => setSelectedDay(e.target.value)}
-            className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-ink outline-none focus:border-steel"
+            className="rounded-xl border border-line/60 bg-white px-3 py-2 text-sm font-medium text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20"
           >
-            <option value="all">كل أيام الشهر</option>
+            <option value="all">📋 كل أيام الشهر</option>
             {dayKeys.map((d) => (
               <option key={d} value={d}>
                 {formatDateLong(d)}
@@ -286,97 +297,112 @@ export default function ReportsView({
 
           <button
             onClick={exportReportExcel}
-            className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-mist"
+            className="rounded-xl bg-linear-to-r from-emerald-600 to-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:shadow-lg hover:shadow-emerald-500/30 sm:px-5"
           >
-            تصدير Excel
+            📊 تصدير Excel
           </button>
         </div>
       </div>
 
+      {/* Grand totals for site mode */}
       {mode === "site" && siteDailyReports.length > 0 && (
-        <div className="flex flex-wrap gap-2 rounded-xl border border-line bg-white p-3 text-xs">
-          <span className="font-bold text-ink">إجمالي كل الورش:</span>
-          <span className="tabular rounded-full bg-mist px-3 py-1 font-semibold text-steel">
-            {grandTotals.days} يوم عمل
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-line/60 bg-linear-to-br from-white to-gray-50/80 p-3 shadow-sm sm:p-4">
+          <span className="text-sm font-bold text-ink">📊 إجمالي كل الورش:</span>
+          <span className="tabular rounded-full bg-mist/80 px-3 py-1.5 text-xs font-semibold text-steel sm:px-4 sm:text-sm">
+            📅 {grandTotals.days} يوم عمل
           </span>
-          <span className="tabular rounded-full bg-orange-50 px-3 py-1 font-semibold text-orange-700">
-            مصروفات {money(grandTotals.expenses)}
+          <span className="tabular rounded-full bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 sm:px-4 sm:text-sm">
+            💰 مصروفات {money(grandTotals.expenses)}
           </span>
-          <span className="tabular rounded-full bg-red-50 px-3 py-1 font-semibold text-red-700">
-            خصومات {money(grandTotals.deductions)}
+          <span className="tabular rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 sm:px-4 sm:text-sm">
+            📉 خصومات {money(grandTotals.deductions)}
           </span>
         </div>
       )}
 
+      {/* Empty state */}
       {!hasData && (
-        <div className="rounded-xl border border-dashed border-line bg-white/60 py-10 text-center text-sm text-out">
+        <div className="rounded-2xl border border-dashed border-line/60 bg-white/60 py-12 text-center text-sm text-out/70 sm:py-16">
+          <span className="block text-4xl mb-3">📭</span>
           لسه مفيش سجلات حضور تتحسب في الفترة دي
         </div>
       )}
 
+      {/* Worker mode */}
       {mode === "worker" && hasData && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:gap-4">
           {visibleWorkerSummaries.map((w) => (
-            <div key={w.workerId} className="rounded-xl border border-line bg-white p-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-base font-bold text-ink">{w.name}</p>
-                <div className="flex items-center gap-2">
-                  <span className="tabular rounded-full bg-mist px-3 py-1 text-sm font-bold text-steel">
-                    {w.totalDays} يوم
+            <div key={w.workerId} className="rounded-2xl border border-line/60 bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="text-base font-bold text-ink sm:text-lg">{w.name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="tabular rounded-full bg-mist/80 px-3 py-1.5 text-xs font-bold text-steel sm:px-4 sm:text-sm">
+                    📅 {w.totalDays} يوم
                   </span>
                   {selectedMonth !== "all" && (
                     <span
                       title="عدد أيام الغياب في الشهر ده"
-                      className={`tabular rounded-full px-3 py-1 text-sm font-bold ${
+                      className={`tabular rounded-full px-3 py-1.5 text-xs font-bold sm:px-4 sm:text-sm ${
                         workerAbsences[w.workerId] > 0
-                          ? "bg-red-50 text-red-700"
+                          ? "bg-rose-50 text-rose-700"
                           : "bg-emerald-50 text-emerald-700"
                       }`}
                     >
-                      غياب: {workerAbsences[w.workerId] ?? 0}
+                      ❌ غياب: {workerAbsences[w.workerId] ?? 0}
                     </span>
                   )}
                   {canPurge && (
                     <button
                       onClick={() => handlePurge(w.workerId, w.name)}
-                      className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                      className="rounded-xl border border-rose-200/50 px-2.5 py-1.5 text-xs font-medium text-rose-500/70 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
                     >
-                      مسح نهائي
+                      🗑 مسح نهائي
                     </button>
                   )}
                 </div>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+
+              {/* Sites */}
+              <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
                 {Object.entries(w.sites).map(([siteName, days]) => (
                   <span
                     key={siteName}
-                    className="tabular inline-flex items-center gap-1.5 rounded-full bg-page px-3 py-1 text-xs font-medium text-ink-soft"
+                    className="tabular inline-flex items-center gap-1.5 rounded-full bg-page/70 px-3 py-1.5 text-xs font-medium text-ink-soft sm:px-4 sm:text-sm"
                   >
-                    {siteName}
+                    🏗️ {siteName}
                     <span className="font-bold text-ink">{days}</span>
                   </span>
                 ))}
               </div>
 
+              {/* Detailed view for selected worker */}
               {selectedWorkerId === w.workerId && (
                 <>
                   {selectedWorkerDays.length > 0 && (
-                    <div className="mt-4 divide-y divide-line border-t border-line pt-2">
+                    <div className="mt-4 divide-y divide-line/60 border-t border-line/60 pt-3">
                       {selectedWorkerDays.map((d) => {
                         const dayDeductions = itemsForDay(selectedWorkerDeductions, d.dateKey);
                         const dayExpenses = itemsForDay(selectedWorkerExpenses, d.dateKey);
                         return (
-                          <div key={d.dateKey} className="flex flex-col gap-1.5 py-2">
+                          <div key={d.dateKey} className="flex flex-col gap-2 py-3 first:pt-0">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <div>
-                                <p className="text-sm font-medium text-ink">{formatDateLong(d.dateKey)}</p>
-                                {d.siteName && <p className="text-xs text-steel">{d.siteName}</p>}
+                                <p className="text-sm font-semibold text-ink">
+                                  📅 {formatDateLong(d.dateKey)}
+                                </p>
+                                {d.siteName && (
+                                  <p className="text-xs text-steel/70">🏗️ {d.siteName}</p>
+                                )}
                               </div>
-                              <div className="tabular flex items-center gap-2 text-xs text-out">
-                                <span className="text-in">{formatTime(d.checkIn)}</span>
+                              <div className="tabular flex flex-wrap items-center gap-2 text-xs text-out">
+                                <span className="text-emerald-600 font-medium">
+                                  🟢 {formatTime(d.checkIn)}
+                                </span>
                                 <span>→</span>
-                                <span>{formatTime(d.checkOut) || "—"}</span>
-                                <span className="rounded-full bg-page px-2 py-0.5 font-medium text-ink-soft">
+                                <span className={d.checkOut ? "text-rose-600 font-medium" : "text-out"}>
+                                  {d.checkOut ? formatTime(d.checkOut) : "..."}
+                                </span>
+                                <span className="rounded-full bg-mist/60 px-2.5 py-1 font-medium text-ink-soft">
                                   {formatDuration(d.checkIn, d.checkOut)}
                                 </span>
                               </div>
@@ -386,9 +412,9 @@ export default function ReportsView({
                                 {dayDeductions.map((item) => (
                                   <span
                                     key={item.id}
-                                    className="tabular rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700"
+                                    className="tabular rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700"
                                   >
-                                    خصم {money(item.amount)}
+                                    📉 خصم {money(item.amount)}
                                     {item.reason ? ` — ${item.reason}` : ""}
                                   </span>
                                 ))}
@@ -397,7 +423,7 @@ export default function ReportsView({
                                     key={item.id}
                                     className="tabular rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-700"
                                   >
-                                    مصروف {money(item.amount)}
+                                    💳 مصروف {money(item.amount)}
                                     {item.reason ? ` — ${item.reason}` : ""}
                                   </span>
                                 ))}
@@ -408,15 +434,15 @@ export default function ReportsView({
                       })}
                     </div>
                   )}
-                  {selectedWorkerDays.length === 0 &&
-                    (selectedWorkerDeductions.length > 0 || selectedWorkerExpenses.length > 0) && (
-                      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
+                  {(selectedWorkerDeductions.length > 0 || selectedWorkerExpenses.length > 0) &&
+                    selectedWorkerDays.length === 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line/60 pt-3">
                         {selectedWorkerDeductions.map((item) => (
                           <span
                             key={item.id}
-                            className="tabular rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700"
+                            className="tabular rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700"
                           >
-                            خصم {formatDateLong(item.dateKey)} — {money(item.amount)}
+                            📉 خصم {formatDateLong(item.dateKey)} — {money(item.amount)}
                           </span>
                         ))}
                         {selectedWorkerExpenses.map((item) => (
@@ -424,7 +450,7 @@ export default function ReportsView({
                             key={item.id}
                             className="tabular rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-700"
                           >
-                            مصروف {formatDateLong(item.dateKey)} — {money(item.amount)}
+                            💳 مصروف {formatDateLong(item.dateKey)} — {money(item.amount)}
                           </span>
                         ))}
                       </div>
@@ -436,44 +462,45 @@ export default function ReportsView({
         </div>
       )}
 
+      {/* Site mode */}
       {mode === "site" && hasData && (
         <div className="flex flex-col gap-4">
           {visibleSiteReports.map((s) => (
-            <div key={s.siteId} className="rounded-xl border border-line bg-white p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-base font-bold text-ink">{s.name}</p>
+            <div key={s.siteId} className="rounded-2xl border border-line/60 bg-white p-4 shadow-sm transition hover:shadow-md sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="text-base font-bold text-ink sm:text-lg">🏭 {s.name}</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="tabular rounded-full bg-mist px-3 py-1 text-xs font-bold text-steel">
-                    {s.totalDays} يوم عمل
+                  <span className="tabular rounded-full bg-mist/80 px-3 py-1.5 text-xs font-bold text-steel sm:px-4 sm:text-sm">
+                    📅 {s.totalDays} يوم عمل
                   </span>
                   {s.totalExpenses > 0 && (
-                    <span className="tabular rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">
-                      مصروفات {money(s.totalExpenses)}
+                    <span className="tabular rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700 sm:px-4 sm:text-sm">
+                      💰 مصروفات {money(s.totalExpenses)}
                     </span>
                   )}
                   {s.totalDeductions > 0 && (
-                    <span className="tabular rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700">
-                      خصومات {money(s.totalDeductions)}
+                    <span className="tabular rounded-full bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 sm:px-4 sm:text-sm">
+                      📉 خصومات {money(s.totalDeductions)}
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-col divide-y divide-line border-t border-line">
+              <div className="mt-3 flex flex-col divide-y divide-line/60 border-t border-line/60">
                 {s.days.map((day) => (
-                  <div key={day.dateKey} className="flex flex-col gap-2 py-3">
-                    <p className="text-sm font-semibold text-ink">{formatDateLong(day.dateKey)}</p>
+                  <div key={day.dateKey} className="flex flex-col gap-2 py-3 first:pt-3">
+                    <p className="text-sm font-semibold text-ink">📅 {formatDateLong(day.dateKey)}</p>
 
                     {day.workers.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {day.workers.map((r) => (
                           <span
                             key={r.workerId}
-                            className="tabular inline-flex items-center gap-1.5 rounded-full bg-page px-3 py-1 text-xs font-medium text-ink-soft"
+                            className="tabular inline-flex items-center gap-1.5 rounded-full bg-page/70 px-3 py-1.5 text-xs font-medium text-ink-soft sm:px-4 sm:text-sm"
                           >
-                            {r.workerName}
-                            <span className="text-out">
-                              {formatTime(r.checkIn)} → {formatTime(r.checkOut) || "—"}
+                            👤 {r.workerName}
+                            <span className="text-out/70">
+                              🟢 {formatTime(r.checkIn)} → {r.checkOut ? `🔴 ${formatTime(r.checkOut)}` : "..."}
                             </span>
                           </span>
                         ))}
@@ -485,9 +512,9 @@ export default function ReportsView({
                         {day.deductions.map((item) => (
                           <span
                             key={item.id}
-                            className="tabular inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700"
+                            className="tabular inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700"
                           >
-                            خصم {item.workerName}: {money(item.amount)}
+                            📉 خصم {item.workerName}: {money(item.amount)}
                             {item.reason ? ` — ${item.reason}` : ""}
                             {onRemoveDeduction && canPurge && (
                               <button
@@ -496,7 +523,7 @@ export default function ReportsView({
                                     onRemoveDeduction(item.id);
                                   }
                                 }}
-                                className="text-red-400 hover:text-red-700"
+                                className="text-rose-400 transition hover:text-rose-700"
                                 title="حذف"
                               >
                                 ×
@@ -509,7 +536,7 @@ export default function ReportsView({
                             key={item.id}
                             className="tabular inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-700"
                           >
-                            مصروف {item.workerName}: {money(item.amount)}
+                            💳 مصروف {item.workerName}: {money(item.amount)}
                             {item.reason ? ` — ${item.reason}` : ""}
                             {onRemoveExpense && canPurge && (
                               <button
@@ -518,7 +545,7 @@ export default function ReportsView({
                                     onRemoveExpense(item.id);
                                   }
                                 }}
-                                className="text-orange-400 hover:text-orange-700"
+                                className="text-orange-400 transition hover:text-orange-700"
                                 title="حذف"
                               >
                                 ×
