@@ -51,7 +51,7 @@ export default function SitesManager({ sites, onAdd, onRemove, onUpdate }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="اسم الورشة *"
-          className="min-w-[9rem] flex-1 rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
+          className="min-w-36 flex-1 rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
         />
         <input
           value={pinInput}

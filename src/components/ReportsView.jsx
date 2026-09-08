@@ -2,7 +2,7 @@ import WorkerPicker from "./WorkerPicker";
 import { useMemo, useState } from "react";
 import { buildSiteDailyReports, buildWorkerSummaries } from "../lib/reports";
 import { computeAbsenceDays } from "../lib/payroll";
-import { formatMonthLabel, formatDateLong, formatDuration, formatTime, todayKey } from "../lib/format";
+import { formatMonthLabel, formatDateLong, formatDuration, formatTime } from "../lib/format";
 import { exportSheetsToExcel } from "../lib/excelExport";
 
 function money(n) {
@@ -37,16 +37,6 @@ export default function ReportsView({
     );
     return Array.from(set).sort().reverse();
   }, [records, deductions, expenses]);
-
-  const currentMonth = todayKey().slice(0, 7);
-  const defaultMonth = monthKeys.includes(currentMonth) ? currentMonth : "all";
-
-  // تحديث الشهر الافتراضي عند تحميل البيانات
-  useMemo(() => {
-    if (selectedMonth === "all" && monthKeys.length > 0) {
-      // نستخدم useEffect بدلاً من ذلك
-    }
-  }, [monthKeys]);
 
   const filteredRecords = useMemo(() => {
     if (selectedMonth === "all") return records;

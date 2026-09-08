@@ -607,12 +607,14 @@ export function computeAbsenceDays(
 // توزيع تكلفة الرواتب على الورش
 //
 // الفكرة: لكل عامل، بنشوف اشتغل كام يوم في كل ورشة الشهر ده،
-// وبنحسب "متوسط تكلفة اليوم" بتاعه = مرتبه الكامل ÷ إجمالي أيامه
-// المدفوعة الشهر ده (حضور + إجازات مدفوعة). بعدين بنوزّع مرتبه
-// الكامل على الورش حسب نسبة الأيام في كل ورشة.
+// وبنحسب "متوسط تكلفة اليوم" بتاعه = مرتبه الكامل ÷ إجمالي أيام
+// حضوره الفعلية الشهر ده. بعدين بنوزّع مرتبه الكامل (شامل قيمة
+// الإجازات الرسمية المدفوعة) على نفس الورش دي حسب نسبة أيامه في
+// كل ورشة.
 //
-// الإجازات الرسمية المدفوعة مش مرتبطة بورشة معينة، فبتتحط في
-// مجموعة "بدون ورشة / إجازة رسمية".
+// لو عامل مالوش أي يوم حضور مسجل خالص الشهر ده (حالة نادرة) لكن
+// عنده إجازات مدفوعة، بتتحط في مجموعة "بدون ورشة / إجازة رسمية"
+// لأنه مفيش ورشة نقدر نوزعها عليها.
 // --------------------------------------------------------------
 export function buildSiteCostAllocation(
   workers,
@@ -679,23 +681,62 @@ export function buildSiteCostAllocation(
 
     const siteUnitsMap = { ...workerSiteUnits[w.id] };
     const holidayUnits = summary.paidHolidayDays || 0;
-    let totalUnits =
-      (workerAttendedUnits[w.id] || 0) + holidayUnits;
+    const attendedUnits = workerAttendedUnits[w.id] || 0;
 
-    if (holidayUnits > 0) {
-      const key = "none";
-      if (!siteUnitsMap[key]) {
-        siteUnitsMap[key] = {
-          name: "بدون ورشة / إجازة رسمية",
-          units: 0,
+    // --------------------------------------------------------
+    // دمج أيام "بدون ورشة" (تسجيل حضور من غير تحديد ورشة) جوه
+    // الورشة اللي العامل حضر فيها أكتر عدد أيام الشهر ده.
+    //
+    // لو العامل عنده ورشة حقيقية واحدة على الأقل حضر فيها فعلاً:
+    // بنلاقي الورشة الأكتر (بالأيام)، ونضيفلها أيام "بدون ورشة"،
+    // وبنشيل "بدون ورشة" خالص من قايمته.
+    //
+    // لو معندوش أي ورشة حقيقية خالص (كل حضوره من غير ورشة):
+    // نسيبها زي ما هي، مفيش ورشة تانية نحطها فيها.
+    // --------------------------------------------------------
+    if (siteUnitsMap.none && siteUnitsMap.none.units > 0) {
+      const realSiteEntries = Object.entries(siteUnitsMap).filter(
+        ([key]) => key !== "none",
+      );
+
+      if (realSiteEntries.length > 0) {
+        let [dominantKey, dominantInfo] = realSiteEntries[0];
+
+        for (const [key, info] of realSiteEntries) {
+          if (info.units > dominantInfo.units) {
+            dominantKey = key;
+            dominantInfo = info;
+          }
+        }
+
+        siteUnitsMap[dominantKey] = {
+          ...dominantInfo,
+          units: dominantInfo.units + siteUnitsMap.none.units,
         };
-      } else {
-        siteUnitsMap[key] = {
-          ...siteUnitsMap[key],
-          units: siteUnitsMap[key].units,
-        };
+        delete siteUnitsMap.none;
       }
-      siteUnitsMap[key].units += holidayUnits;
+    }
+
+    // --------------------------------------------------------
+    // توزيع الإجازات الرسمية المدفوعة:
+    //
+    // لو العامل اشتغل في ورشة أو أكتر الشهر ده: قيمة إجازاته
+    // الرسمية بتتوزع على نفس الورش دي بنفس نسبة أيامه في كل
+    // واحدة منها (مش بتروح لمجموعة "بدون ورشة" منفصلة).
+    //
+    // لو العامل مالوش أي يوم حضور مسجل في أي ورشة الشهر ده
+    // (حالة نادرة) لكن عنده إجازات مدفوعة: مفيش ورشة نوزعها
+    // عليها، فبتفضل في مجموعة "بدون ورشة / إجازة رسمية".
+    // --------------------------------------------------------
+    let totalUnits = attendedUnits;
+
+    if (attendedUnits <= 0 && holidayUnits > 0) {
+      const key = "none";
+      siteUnitsMap[key] = {
+        name: "بدون ورشة / إجازة رسمية",
+        units: holidayUnits,
+      };
+      totalUnits = holidayUnits;
     }
 
     if (totalUnits <= 0) continue;
@@ -703,14 +744,20 @@ export function buildSiteCostAllocation(
     // --------------------------------------------------------
     // مرتب العامل الكامل اللي بيتوزّع على الورش:
     //
-    // = (الأساسي + بدل الأكل) حسب أيام الحضور الفعلية
+    // = الأساسي + بدل الأكل (المرتب التعاقدي الكامل زي ما هو،
+    //   مش حسب أيام الحضور الفعلية)
     //   - الضمان الاجتماعي (لو العامل عليه ضمان)
     //
-    // من غير ما نخصم منه أي سلف أو مصاريف أو خصومات تانية،
-    // لأن دي حاجات شخصية خاصة بالعامل نفسه، ومش لها علاقة
-    // بتكلفة الورشة الفعلية.
+    // من غير ما نحسب أي غيابات، ومن غير ما نخصم منه أي سلف أو
+    // مصاريف أو خصومات تانية، لأن دي حاجات شخصية خاصة بالعامل
+    // نفسه، ومش لها علاقة بتكلفة الورشة الفعلية.
+    //
+    // ملحوظة: قبل كده كان بيتحسب من summary.totalBeforeDeductions
+    // اللي هو "جروس" متأثر بعدد أيام حضوره الفعلية (لو غاب أيام
+    // كان بينزّل المبلغ الموزّع). دلوقتي بنستخدم المرتب الكامل
+    // زي ما هو في بيانات العامل، بغض النظر عن الغياب خالص.
     // --------------------------------------------------------
-    const fullSalary = summary.totalBeforeDeductions - summary.inss;
+    const fullSalary = summary.basicSalary + summary.almoco - summary.inss;
 
     const amountToSplit =
       basis === "fullAfterDebt"
