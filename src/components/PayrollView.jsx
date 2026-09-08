@@ -16,7 +16,6 @@ function money(n) {
   return `${(n || 0).toLocaleString("en-US")} Kz`;
 }
 
-// تاريخ + وقت الاستلام لعرضه جنب علامة "اتصرف"
 function formatPaidAt(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -95,7 +94,7 @@ export default function PayrollView({
     ],
   );
 
-  const [costBasis, setCostBasis] = useState("net"); // "net" | "netAfterDebt"
+  const [costBasis, setCostBasis] = useState("net");
 
   const siteAllocation = useMemo(
     () =>
@@ -118,7 +117,6 @@ export default function PayrollView({
   const [showSiteCost, setShowSiteCost] = useState(false);
   const [showSiteSummary, setShowSiteSummary] = useState(false);
 
-  // ---- من استلم مرتبه في الشهر المختار ----
   const paidMap = useMemo(() => {
     const map = {};
     for (const p of payments) {
@@ -141,9 +139,8 @@ export default function PayrollView({
     }
   }
 
-  // ---- search + accordion state ----
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // all | paid | unpaid
+  const [statusFilter, setStatusFilter] = useState("all");
   const [expandedIds, setExpandedIds] = useState(new Set());
 
   function toggleWorker(id) {
@@ -204,7 +201,6 @@ export default function PayrollView({
     [filteredSummaries, paidMap],
   );
 
-  // ---- single payslip modal ----
   const [payslipWorkerId, setPayslipWorkerId] = useState(null);
   const payslipSummary =
     summaries.find((s) => s.workerId === payslipWorkerId) || null;
@@ -221,7 +217,6 @@ export default function PayrollView({
     .slice()
     .sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
 
-  // ---- all-workers payslip modal ----
   const [showAllSlip, setShowAllSlip] = useState(false);
 
   function exportPayrollExcel() {
@@ -273,46 +268,47 @@ export default function PayrollView({
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-ink">مرتبات الشهر</h3>
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-4 sm:gap-5">
+      {/* Header - تحسين للموبايل */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <h3 className="text-sm font-bold text-ink sm:text-base">مرتبات الشهر</h3>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {summaries.length > 0 && (
             <button
               onClick={() => setShowAllSlip(true)}
-              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-steel hover:bg-mist"
+              className="rounded-lg border border-line bg-white px-2 py-1.5 text-[10px] font-semibold text-steel hover:bg-mist sm:px-3 sm:py-2 sm:text-sm"
             >
-              كشف كل العمال / PDF
+              كشف كل العمال
             </button>
           )}
           {siteAllocation.length > 0 && (
             <button
               onClick={() => setShowSiteCost(true)}
-              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-steel hover:bg-mist"
+              className="rounded-lg border border-line bg-white px-2 py-1.5 text-[10px] font-semibold text-steel hover:bg-mist sm:px-3 sm:py-2 sm:text-sm"
             >
-              توزيع الرواتب على الورش
+              توزيع الرواتب
             </button>
           )}
           {siteAttendanceSummary.length > 0 && (
             <button
               onClick={() => setShowSiteSummary(true)}
-              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-steel hover:bg-mist"
+              className="rounded-lg border border-line bg-white px-2 py-1.5 text-[10px] font-semibold text-steel hover:bg-mist sm:px-3 sm:py-2 sm:text-sm"
             >
-              ملخص الورش (مين اشتغل فين)
+              ملخص الورش
             </button>
           )}
           {filteredSummaries.length > 0 && (
             <button
               onClick={exportPayrollExcel}
-              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-mist"
+              className="rounded-lg border border-line bg-white px-2 py-1.5 text-[10px] font-semibold text-emerald-700 hover:bg-mist sm:px-3 sm:py-2 sm:text-sm"
             >
-              تصدير Excel
+              Excel
             </button>
           )}
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-medium text-ink outline-none focus:border-steel"
+            className="rounded-lg border border-line bg-white px-2 py-1.5 text-[10px] font-medium text-ink outline-none focus:border-steel sm:px-3 sm:py-2 sm:text-sm"
           >
             {monthKeys.map((m) => (
               <option key={m} value={m}>
@@ -324,18 +320,18 @@ export default function PayrollView({
       </div>
 
       {summaries.length === 0 && (
-        <div className="rounded-xl border border-dashed border-line bg-white/60 py-10 text-center text-sm text-out">
+        <div className="rounded-xl border border-dashed border-line bg-white/60 py-8 text-center text-sm text-out sm:py-10">
           لسه مفيش بيانات في الشهر ده
         </div>
       )}
 
       {summaries.length > 0 && (
         <>
-          {/* Search bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-48 flex-1">
+          {/* Search bar - تحسين للموبايل */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative min-w-0 flex-1">
               <svg
-                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-out"
+                className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-out sm:h-4 sm:w-4"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -348,82 +344,84 @@ export default function PayrollView({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="دوّر باسم العامل..."
-                className="w-full rounded-lg border border-line bg-white py-2 pl-3 pr-9 text-sm text-ink outline-none focus:border-steel"
+                className="w-full rounded-lg border border-line bg-white py-2 pl-8 pr-8 text-xs text-ink outline-none focus:border-steel sm:pl-3 sm:pr-9 sm:text-sm"
               />
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-out hover:bg-page hover:text-ink"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-xs text-out hover:bg-page hover:text-ink sm:text-sm"
                   title="امسح البحث"
                 >
                   ✕
                 </button>
               )}
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-steel outline-none focus:border-steel"
-            >
-              <option value="all">الكل</option>
-              <option value="paid">اتصرف</option>
-              <option value="unpaid">لسه ما اتصرفش</option>
-            </select>
-            <button
-              onClick={expandAll}
-              className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-steel hover:bg-mist"
-            >
-              افتح الكل
-            </button>
-            <button
-              onClick={collapseAll}
-              className="rounded-lg border border-line bg-white px-3 py-2 text-xs font-semibold text-steel hover:bg-mist"
-            >
-              اقفل الكل
-            </button>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="flex-1 rounded-lg border border-line bg-white px-2 py-1.5 text-[10px] font-semibold text-steel outline-none focus:border-steel sm:flex-none sm:px-3 sm:py-2 sm:text-xs"
+              >
+                <option value="all">الكل</option>
+                <option value="paid">اتصرف</option>
+                <option value="unpaid">لسه</option>
+              </select>
+              <button
+                onClick={expandAll}
+                className="flex-1 rounded-lg border border-line bg-white px-2 py-1.5 text-[10px] font-semibold text-steel hover:bg-mist sm:flex-none sm:px-3 sm:py-2 sm:text-xs"
+              >
+                فتح
+              </button>
+              <button
+                onClick={collapseAll}
+                className="flex-1 rounded-lg border border-line bg-white px-2 py-1.5 text-[10px] font-semibold text-steel hover:bg-mist sm:flex-none sm:px-3 sm:py-2 sm:text-xs"
+              >
+                غلق
+              </button>
+            </div>
           </div>
 
-          {/* Summary totals */}
-          <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-white p-4 sm:grid-cols-6">
-            <div>
-              <p className="text-[11px] text-out">الإجمالي المستحق</p>
-              <p className="tabular mt-0.5 text-base font-bold text-ink">
+          {/* Summary totals - تحسين للموبايل */}
+          <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-line bg-white p-3 sm:grid-cols-3 md:grid-cols-6 sm:gap-2 sm:p-4">
+            <div className="rounded-lg bg-page/50 px-2 py-1.5 sm:px-3 sm:py-2">
+              <p className="text-[9px] text-out sm:text-[11px]">المستحق</p>
+              <p className="tabular mt-0.5 text-xs font-bold text-ink sm:text-sm md:text-base">
                 {money(totals.gross)}
               </p>
             </div>
-            <div>
-              <p className="text-[11px] text-out">اتصرف</p>
-              <p className="tabular mt-0.5 text-base font-bold text-emerald-600">
-                {totals.paidCount} / {filteredSummaries.length}
+            <div className="rounded-lg bg-page/50 px-2 py-1.5 sm:px-3 sm:py-2">
+              <p className="text-[9px] text-out sm:text-[11px]">اتصرف</p>
+              <p className="tabular mt-0.5 text-xs font-bold text-emerald-600 sm:text-sm md:text-base">
+                {totals.paidCount}/{filteredSummaries.length}
               </p>
             </div>
-            <div>
-              <p className="text-[11px] text-out">الخصومات</p>
-              <p className="tabular mt-0.5 text-base font-bold text-red-600">
+            <div className="rounded-lg bg-page/50 px-2 py-1.5 sm:px-3 sm:py-2">
+              <p className="text-[9px] text-out sm:text-[11px]">خصومات</p>
+              <p className="tabular mt-0.5 text-xs font-bold text-red-600 sm:text-sm md:text-base">
                 {totals.deductions > 0 ? `-${money(totals.deductions)}` : "—"}
               </p>
             </div>
-            <div>
-              <p className="text-[11px] text-out">المصروفات/السلف</p>
-              <p className="tabular mt-0.5 text-base font-bold text-orange-600">
+            <div className="rounded-lg bg-page/50 px-2 py-1.5 sm:px-3 sm:py-2">
+              <p className="text-[9px] text-out sm:text-[11px]">سلف</p>
+              <p className="tabular mt-0.5 text-xs font-bold text-orange-600 sm:text-sm md:text-base">
                 {totals.expenses > 0 ? `-${money(totals.expenses)}` : "—"}
               </p>
             </div>
-            <div>
-              <p className="text-[11px] text-out">الضمان الاجتماعي</p>
-              <p className="tabular mt-0.5 text-base font-bold text-purple-600">
+            <div className="rounded-lg bg-page/50 px-2 py-1.5 sm:px-3 sm:py-2">
+              <p className="text-[9px] text-out sm:text-[11px]">INSS</p>
+              <p className="tabular mt-0.5 text-xs font-bold text-purple-600 sm:text-sm md:text-base">
                 {totals.inss > 0 ? `-${money(totals.inss)}` : "—"}
               </p>
             </div>
-            <div>
-              <p className="text-[11px] text-out">الصافي الكلي</p>
-              <p className="tabular mt-0.5 text-lg font-black text-ink">
+            <div className="rounded-lg bg-page/50 px-2 py-1.5 sm:px-3 sm:py-2">
+              <p className="text-[9px] text-out sm:text-[11px]">الصافي</p>
+              <p className="tabular mt-0.5 text-xs font-black text-ink sm:text-sm md:text-lg">
                 {money(totals.net)}
               </p>
             </div>
           </div>
 
-          {/* Workers accordion */}
+          {/* Workers accordion - تحسين للموبايل */}
           {filteredSummaries.length === 0 ? (
             <div className="rounded-xl border border-dashed border-line bg-white/60 py-8 text-center text-sm text-out">
               مفيش عامل بالاسم ده
@@ -439,11 +437,11 @@ export default function PayrollView({
                   >
                     <button
                       onClick={() => toggleWorker(s.workerId)}
-                      className="flex w-full items-start justify-between gap-2 px-4 py-3 text-right"
+                      className="flex w-full items-start justify-between gap-1.5 px-3 py-2.5 text-right sm:gap-2 sm:px-4 sm:py-3"
                     >
-                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1 sm:gap-x-2">
                         <svg
-                          className={`mt-0.5 h-4 w-4 shrink-0 text-out transition-transform ${
+                          className={`mt-0.5 h-3.5 w-3.5 shrink-0 text-out transition-transform sm:h-4 sm:w-4 ${
                             isOpen ? "-rotate-90" : ""
                           }`}
                           viewBox="0 0 24 24"
@@ -457,79 +455,79 @@ export default function PayrollView({
                             strokeLinejoin="round"
                           />
                         </svg>
-                        <p className="min-w-0 break-words text-base font-bold text-ink">
+                        <p className="min-w-0 break-words text-sm font-bold text-ink sm:text-base">
                           {s.name}
                         </p>
                         {paidMap[s.workerId] ? (
-                          <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                            اتصرف ✓
+                          <span className="shrink-0 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700 sm:px-2 sm:text-[10px]">
+                            ✓
                           </span>
                         ) : (
-                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                          <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold text-amber-700 sm:px-2 sm:text-[10px]">
                             لسه
                           </span>
                         )}
                         {s.debtBalance > 0 && (
-                          <span className="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
-                            عليه دين: {money(s.debtBalance)}
+                          <span className="shrink-0 rounded-full bg-rose-50 px-1.5 py-0.5 text-[8px] font-bold text-rose-700 sm:px-2 sm:text-[10px]">
+                            دين:{money(s.debtBalance)}
                           </span>
                         )}
                       </div>
-                      <span className="tabular mt-0.5 shrink-0 text-lg font-black text-ink">
+                      <span className="tabular mt-0.5 shrink-0 text-sm font-black text-ink sm:text-lg">
                         {money(s.net)}
                       </span>
                     </button>
 
                     {isOpen && (
-                      <div className="border-t border-line px-4 py-3">
-                        <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-                          <div className="rounded-lg bg-page px-3 py-2">
-                            <p className="text-out">المرتب الشهري</p>
+                      <div className="border-t border-line px-2 py-2 sm:px-4 sm:py-3">
+                        {/* Grid بيانات العامل - 2 columns على الموبايل، 4 على الكبيرة */}
+                        <div className="grid grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4 sm:gap-2 sm:text-xs">
+                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
+                            <p className="text-out">المرتب</p>
                             <p className="tabular mt-0.5 font-semibold text-ink">
                               {money(s.monthlyWage)}
                             </p>
                           </div>
-                          <div className="rounded-lg bg-page px-3 py-2">
+                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
                             <p className="text-out">اليومية</p>
                             <p className="tabular mt-0.5 font-semibold text-ink">
-                              {roundDaily(s.dailyWage).toLocaleString("en-US")}{" "}
-                              Kz
+                              {roundDaily(s.dailyWage).toLocaleString("en-US")}
                             </p>
                           </div>
-                          <div className="rounded-lg bg-page px-3 py-2">
-                            <p className="text-out">أيام كاملة</p>
+                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
+                            <p className="text-out">أيام</p>
                             <p className="tabular mt-0.5 font-semibold text-ink">
                               {s.fullDays + s.offDaysWorked + s.paidHolidayDays}
                             </p>
                           </div>
-                          <div className="rounded-lg bg-page px-3 py-2">
-                            <p className="text-out">منها إجازات مدفوعة</p>
+                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
+                            <p className="text-out">إجازات</p>
                             <p className="tabular mt-0.5 font-semibold text-ink">
                               {s.paidHolidayDays}
                             </p>
                           </div>
-                          <div className="rounded-lg bg-page px-3 py-2">
-                            <p className="text-out">الغياب</p>
+                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
+                            <p className="text-out">غياب</p>
                             <p className="tabular mt-0.5 font-semibold text-red-600">
                               {s.absentDays}
                             </p>
                           </div>
-                          <div className="rounded-lg bg-page px-3 py-2">
-                            <p className="text-out">الإجمالي المستحق</p>
+                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
+                            <p className="text-out">المستحق</p>
                             <p className="tabular mt-0.5 font-semibold text-ink">
                               {money(s.gross)}
                             </p>
                           </div>
-                          <div className="rounded-lg bg-page px-3 py-2">
-                            <p className="text-out">الخصومات</p>
+                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
+                            <p className="text-out">خصومات</p>
                             <p className="tabular mt-0.5 font-semibold text-red-600">
                               {s.deductionsTotal > 0
                                 ? `-${money(s.deductionsTotal)}`
                                 : "—"}
                             </p>
                           </div>
-                          <div className="rounded-lg bg-page px-3 py-2">
-                            <p className="text-out">المصروفات/السلف</p>
+                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
+                            <p className="text-out">سلف</p>
                             <p className="tabular mt-0.5 font-semibold text-orange-600">
                               {s.expensesTotal > 0
                                 ? `-${money(s.expensesTotal)}`
@@ -537,29 +535,31 @@ export default function PayrollView({
                             </p>
                           </div>
                           {s.hasInss && (
-                            <div className="rounded-lg bg-page px-3 py-2">
-                              <p className="text-out">الضمان الاجتماعي (3%)</p>
+                            <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
+                              <p className="text-out">INSS</p>
                               <p className="tabular mt-0.5 font-semibold text-purple-600">
                                 -{money(s.inss)}
                               </p>
                             </div>
                           )}
                         </div>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
+
+                        {/* الأزرار - تحسين للموبايل */}
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:mt-3 sm:gap-2">
                           <button
                             onClick={() => setPayslipWorkerId(s.workerId)}
-                            className="rounded-lg border border-line py-2 text-xs font-semibold text-steel hover:bg-mist sm:px-6"
+                            className="rounded-lg border border-line px-2 py-1.5 text-[10px] font-semibold text-steel hover:bg-mist sm:px-4 sm:py-2 sm:text-xs"
                           >
-                            كشف / PDF
+                            كشف
                           </button>
 
                           {paidMap[s.workerId] ? (
                             <button
                               onClick={() => togglePaid(s)}
-                              className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                              className="flex flex-wrap items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-100 sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs"
                               title="دوس عشان ترجع تعتبره لسه ما استلمش"
                             >
-                              اتصرف ✓
+                              ✓
                               {paidMap[s.workerId].paidAt && (
                                 <span className="font-normal text-emerald-600/80">
                                   ({formatPaidAt(paidMap[s.workerId].paidAt)})
@@ -569,9 +569,9 @@ export default function PayrollView({
                           ) : (
                             <button
                               onClick={() => togglePaid(s)}
-                              className="rounded-lg bg-ink px-3 py-2 text-xs font-semibold text-white hover:bg-ink/90"
+                              className="rounded-lg bg-ink px-2 py-1.5 text-[10px] font-semibold text-white hover:bg-ink/90 sm:px-3 sm:py-2 sm:text-xs"
                             >
-                              اتصرف؟ سجّل إنه استلم مرتبه
+                              سجّل استلام
                             </button>
                           )}
                         </div>

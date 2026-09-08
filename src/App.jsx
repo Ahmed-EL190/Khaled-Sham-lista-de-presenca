@@ -50,7 +50,6 @@ import {
   markSalaryUnpaid,
 } from "./lib/firestore";
 
-// انصراف تلقائي: أي حد نسي يعمل انصراف بيتسجله الموقع أوتوماتيك بعد الساعة دي.
 const AUTO_CHECKOUT_HOUR = 17;
 const AUTO_CHECKOUT_MINUTE = 30;
 
@@ -128,8 +127,7 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, session, scopeSiteId, today, isOwner]);
-  // انصراف تلقائي بعد الساعة 5:30 مساءً لأي عامل حضر ونسي يعمل انصراف.
-  // بيتفحص فور فتح الموقع، وبعدين كل دقيقة، طول ما الموقع فاتح عند حد.
+
   useEffect(() => {
     if (!authed || !session) return;
 
@@ -176,7 +174,6 @@ export default function App() {
     [workers, searchTerm],
   );
 
-  // ---- وضع الانصراف: بس العمال اللي سجلوا حضور في ورشة الفورمان النهاردة ولسه ما خرجوش ----
   const presentAtMySite = useMemo(
     () =>
       todayRecords.filter(
@@ -216,7 +213,7 @@ export default function App() {
       punchOut({ dateKey: today, workerId });
       return;
     }
-    if (entry?.checkIn) return; // خلص يومه، لو غلط استخدم "تصحيح"
+    if (entry?.checkIn) return;
 
     if (sites.length <= 1) {
       const site = sites[0];
@@ -285,7 +282,7 @@ export default function App() {
     );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden bg-gray-50">
       <Header
         presentCount={presentCount}
         totalCount={workers.length}
@@ -304,13 +301,14 @@ export default function App() {
         />
       )}
 
-      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-6">
-        <nav className="mb-5 flex w-fit flex-wrap gap-1 rounded-lg border border-line bg-white p-1">
+      <main className="mx-auto max-w-5xl px-3 py-4 sm:px-5 sm:py-6">
+        {/* Tabs - تحسين للشاشات الصغيرة */}
+        <nav className="mb-4 flex w-full flex-wrap gap-1 rounded-lg border border-line bg-white p-1 sm:mb-5">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:px-4 sm:text-sm ${
+              className={`flex-1 min-w-[40px] rounded-md px-1.5 py-2 text-[10px] font-semibold transition sm:flex-none sm:px-3 sm:py-1.5 sm:text-xs md:text-sm ${
                 tab === t.id ? "bg-ink text-white" : "text-out hover:text-ink"
               }`}
             >
@@ -335,17 +333,17 @@ export default function App() {
 
         {tab === "today" && !isOwner && (
           <>
-            <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="دور على اسم عامل..."
-                className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs sm:px-4"
               />
-              <div className="flex rounded-lg border border-line bg-white p-1">
+              <div className="flex w-full rounded-lg border border-line bg-white p-1 sm:w-auto">
                 <button
                   onClick={() => setCheckoutMode(false)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
+                  className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition sm:flex-none sm:px-3 sm:text-sm ${
                     !checkoutMode ? "bg-ink text-white" : "text-out hover:text-ink"
                   }`}
                 >
@@ -353,7 +351,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setCheckoutMode(true)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
+                  className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition sm:flex-none sm:px-3 sm:text-sm ${
                     checkoutMode ? "bg-ink text-white" : "text-out hover:text-ink"
                   }`}
                 >
@@ -364,15 +362,15 @@ export default function App() {
 
             {checkoutMode ? (
               presentAtMySite.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+                <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                   مفيش حد لسه في الورشة محتاج انصراف
                 </div>
               ) : filteredPresentAtMySite.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+                <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                   مفيش عامل بالاسم ده
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {filteredPresentAtMySite.map((r) => (
                     <WorkerCard
                       key={r.workerId}
@@ -385,15 +383,15 @@ export default function App() {
                 </div>
               )
             ) : workers.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+              <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                 لسه مفيش عمال متضافين، كلم صاحب الشركة يضيفهم
               </div>
             ) : filteredWorkers.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+              <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                 مفيش عامل بالاسم ده
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {filteredWorkers.map((worker) => (
                   <WorkerCard
                     key={worker.id}
@@ -409,16 +407,16 @@ export default function App() {
         )}
 
         {tab === "today" && isOwner && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 sm:gap-6">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="دور على اسم عامل..."
-              className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs"
+              className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs sm:px-4"
             />
 
             {sites.length === 0 && (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+              <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                 لسه مفيش ورش مضافة
               </div>
             )}
@@ -438,18 +436,20 @@ export default function App() {
               ).length;
               return (
                 <div key={site.id}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <h2 className="text-sm font-bold text-ink">{site.name}</h2>
-                    <span className="tabular rounded-full bg-mist px-2.5 py-1 text-xs font-bold text-steel">
-                      {sitePresent} في الورشة دلوقتي
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
+                    <h2 className="text-sm font-bold text-ink sm:text-base">
+                      {site.name}
+                    </h2>
+                    <span className="tabular rounded-full bg-mist px-2 py-1 text-xs font-bold text-steel sm:px-2.5">
+                      {sitePresent} في الورشة
                     </span>
                   </div>
                   {siteRecords.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-line bg-white/60 px-4 py-3 text-xs text-out">
+                    <p className="rounded-lg border border-dashed border-line bg-white/60 px-3 py-3 text-xs text-out sm:px-4">
                       محدش سجل حضور في الورشة دي النهاردة
                     </p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       {siteRecords.map((r) => (
                         <WorkerCard
                           key={r.workerId}
@@ -466,10 +466,10 @@ export default function App() {
 
             {pendingWorkers.length > 0 && (
               <div>
-                <h2 className="mb-2 text-sm font-bold text-ink">
+                <h2 className="mb-2 text-sm font-bold text-ink sm:text-base">
                   لسه ما جوش النهاردة
                 </h2>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {pendingWorkers.map((w) => (
                     <WorkerCard key={w.id} worker={w} entry={null} readOnly />
                   ))}
@@ -588,7 +588,7 @@ export default function App() {
         )}
 
         {tab === "manage" && isOwner && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:gap-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <SitesManager
                 sites={sites}
