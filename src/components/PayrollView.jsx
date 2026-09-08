@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
-import { buildPayrollSummaries } from "../lib/payroll";
+import { buildPayrollSummaries, buildSiteCostAllocation } from "../lib/payroll";
+import { buildSiteSummaries } from "../lib/reports";
 import { formatMonthLabel, formatTime, todayKey } from "../lib/format";
 import { exportRowsToExcel } from "../lib/excelExport";
 import PayslipModal from "./PayslipModal";
 import PayrollAllSlipModal from "./PayrollAllSlipModal";
+import SiteCostModal from "./SiteCostModal";
+import SiteSummaryModal from "./SiteSummaryModal";
 
 function roundDaily(n) {
   return Math.round((n || 0) * 10) / 10;
@@ -91,6 +94,29 @@ export default function PayrollView({
       selectedMonth,
     ],
   );
+
+  const [costBasis, setCostBasis] = useState("net"); // "net" | "netAfterDebt"
+
+  const siteAllocation = useMemo(
+    () =>
+      buildSiteCostAllocation(
+        workers,
+        filteredRecords,
+        schedule,
+        summaries,
+        selectedMonth,
+        costBasis,
+      ),
+    [workers, filteredRecords, schedule, summaries, selectedMonth, costBasis],
+  );
+
+  const siteAttendanceSummary = useMemo(
+    () => buildSiteSummaries([], filteredRecords),
+    [filteredRecords],
+  );
+
+  const [showSiteCost, setShowSiteCost] = useState(false);
+  const [showSiteSummary, setShowSiteSummary] = useState(false);
 
   // ---- من استلم مرتبه في الشهر المختار ----
   const paidMap = useMemo(() => {
@@ -257,6 +283,22 @@ export default function PayrollView({
               className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-steel hover:bg-mist"
             >
               كشف كل العمال / PDF
+            </button>
+          )}
+          {siteAllocation.length > 0 && (
+            <button
+              onClick={() => setShowSiteCost(true)}
+              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-steel hover:bg-mist"
+            >
+              توزيع الرواتب على الورش
+            </button>
+          )}
+          {siteAttendanceSummary.length > 0 && (
+            <button
+              onClick={() => setShowSiteSummary(true)}
+              className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold text-steel hover:bg-mist"
+            >
+              ملخص الورش (مين اشتغل فين)
             </button>
           )}
           {filteredSummaries.length > 0 && (
@@ -570,6 +612,24 @@ export default function PayrollView({
           summaries={summaries}
           monthLabel={formatMonthLabel(selectedMonth)}
           onClose={() => setShowAllSlip(false)}
+        />
+      )}
+
+      {showSiteCost && (
+        <SiteCostModal
+          sites={siteAllocation}
+          monthLabel={formatMonthLabel(selectedMonth)}
+          costBasis={costBasis}
+          onChangeCostBasis={setCostBasis}
+          onClose={() => setShowSiteCost(false)}
+        />
+      )}
+
+      {showSiteSummary && (
+        <SiteSummaryModal
+          sites={siteAttendanceSummary}
+          monthLabel={formatMonthLabel(selectedMonth)}
+          onClose={() => setShowSiteSummary(false)}
         />
       )}
     </div>

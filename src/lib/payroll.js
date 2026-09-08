@@ -602,3 +602,172 @@ export function computeAbsenceDays(
     ),
   };
 }
+
+// --------------------------------------------------------------
+// توزيع تكلفة الرواتب على الورش
+//
+// الفكرة: لكل عامل، بنشوف اشتغل كام يوم في كل ورشة الشهر ده،
+// وبنحسب "متوسط تكلفة اليوم" بتاعه = صافي مرتبه ÷ إجمالي أيامه
+// المدفوعة الشهر ده (حضور + إجازات مدفوعة). بعدين بنوزّع صافي
+// مرتبه على الورش حسب نسبة الأيام في كل ورشة.
+//
+// الإجازات الرسمية المدفوعة مش مرتبطة بورشة معينة، فبتتحط في
+// مجموعة "بدون ورشة / إجازة رسمية".
+// --------------------------------------------------------------
+export function buildSiteCostAllocation(
+  workers,
+  records,
+  schedule,
+  summaries,
+  monthKey,
+  basis = "net" // "net" | "netAfterDebt"
+) {
+  const summaryByWorker = {};
+  for (const s of summaries) summaryByWorker[s.workerId] = s;
+
+  const workerSiteUnits = {}; // workerId -> { siteKey: { name, units } }
+  const workerAttendedUnits = {}; // workerId -> إجمالي أيام الحضور الفعلية (بدون الإجازات الرسمية)
+
+  for (const w of workers) {
+    workerSiteUnits[w.id] = {};
+    workerAttendedUnits[w.id] = 0;
+  }
+
+  for (const r of records) {
+    if (!r.checkIn) continue;
+    if (!r.dateKey?.startsWith(monthKey)) continue;
+
+    if (!workerSiteUnits[r.workerId]) {
+      workerSiteUnits[r.workerId] = {};
+      workerAttendedUnits[r.workerId] = 0;
+    }
+
+    const weight = dayType(r.dateKey, schedule) === "half" ? 0.5 : 1;
+    const siteKey = r.siteId || "none";
+    const siteName = r.siteName || "بدون ورشة";
+
+    if (!workerSiteUnits[r.workerId][siteKey]) {
+      workerSiteUnits[r.workerId][siteKey] = {
+        name: siteName,
+        units: 0,
+      };
+    }
+
+    workerSiteUnits[r.workerId][siteKey].units += weight;
+    workerAttendedUnits[r.workerId] += weight;
+  }
+
+  const bySite = {};
+
+  function siteBucket(siteId, siteName) {
+    const key = siteId || "none";
+    if (!bySite[key]) {
+      bySite[key] = {
+        siteId: key === "none" ? null : key,
+        name: siteName,
+        totalCost: 0,
+        totalUnits: 0,
+        workers: {},
+      };
+    }
+    return bySite[key];
+  }
+
+  for (const w of workers) {
+    const summary = summaryByWorker[w.id];
+    if (!summary) continue;
+
+    const siteUnitsMap = { ...workerSiteUnits[w.id] };
+    const holidayUnits = summary.paidHolidayDays || 0;
+    let totalUnits =
+      (workerAttendedUnits[w.id] || 0) + holidayUnits;
+
+    if (holidayUnits > 0) {
+      const key = "none";
+      if (!siteUnitsMap[key]) {
+        siteUnitsMap[key] = {
+          name: "بدون ورشة / إجازة رسمية",
+          units: 0,
+        };
+      } else {
+        siteUnitsMap[key] = {
+          ...siteUnitsMap[key],
+          units: siteUnitsMap[key].units,
+        };
+      }
+      siteUnitsMap[key].units += holidayUnits;
+    }
+
+    if (totalUnits <= 0) continue;
+
+    const amountToSplit =
+      basis === "netAfterDebt"
+        ? summary.net - (summary.debtBalance || 0)
+        : summary.net;
+
+    const perUnitCost = amountToSplit / totalUnits;
+
+    for (const [siteKey, info] of Object.entries(siteUnitsMap)) {
+      if (!info.units) continue;
+
+      const cost = perUnitCost * info.units;
+      const bucket = siteBucket(siteKey, info.name);
+
+      bucket.totalCost += cost;
+      bucket.totalUnits += info.units;
+
+      if (!bucket.workers[w.id]) {
+        bucket.workers[w.id] = {
+          workerId: w.id,
+          name: summary.name,
+          units: 0,
+          cost: 0,
+        };
+      }
+
+      bucket.workers[w.id].units += info.units;
+      bucket.workers[w.id].cost += cost;
+    }
+  }
+
+  const rawSites = Object.values(bySite).map((bucket) => ({
+    ...bucket,
+    workers: Object.values(bucket.workers).sort((a, b) => b.cost - a.cost),
+  }));
+
+  // ------------------------------------------------------------
+  // ورشة "OFFICE": مش هي نفسها بتتحسب كورشة ليها تكلفة مستقلة —
+  // موظفيها بيتوزّع صافي مرتبهم بالتساوي على باقي الورش الحقيقية
+  // (من غير "بدون ورشة / إجازة رسمية").
+  // ------------------------------------------------------------
+  const isOffice = (name) => (name || "").trim().toLowerCase() === "office";
+
+  const officeSite = rawSites.find((s) => isOffice(s.name));
+  const otherSites = rawSites.filter(
+    (s) => !isOffice(s.name) && s.siteId !== null,
+  );
+  const noSiteBucket = rawSites.find((s) => s.siteId === null && !isOffice(s.name));
+
+  let finalSites = rawSites;
+
+  if (officeSite && otherSites.length > 0) {
+    const share = officeSite.totalCost / otherSites.length;
+
+    for (const site of otherSites) {
+      site.totalCost += share;
+      site.workers = [
+        ...site.workers,
+        {
+          workerId: `office-share-${site.siteId}`,
+          name: "حصة موظفي OFFICE (بالتساوي)",
+          units: null,
+          cost: share,
+        },
+      ];
+    }
+
+    finalSites = [...otherSites, ...(noSiteBucket ? [noSiteBucket] : [])];
+  }
+
+  return finalSites.sort((a, b) => b.totalCost - a.totalCost);
+}
