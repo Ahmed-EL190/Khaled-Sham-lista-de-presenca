@@ -607,9 +607,9 @@ export function computeAbsenceDays(
 // توزيع تكلفة الرواتب على الورش
 //
 // الفكرة: لكل عامل، بنشوف اشتغل كام يوم في كل ورشة الشهر ده،
-// وبنحسب "متوسط تكلفة اليوم" بتاعه = صافي مرتبه ÷ إجمالي أيامه
-// المدفوعة الشهر ده (حضور + إجازات مدفوعة). بعدين بنوزّع صافي
-// مرتبه على الورش حسب نسبة الأيام في كل ورشة.
+// وبنحسب "متوسط تكلفة اليوم" بتاعه = مرتبه الكامل ÷ إجمالي أيامه
+// المدفوعة الشهر ده (حضور + إجازات مدفوعة). بعدين بنوزّع مرتبه
+// الكامل على الورش حسب نسبة الأيام في كل ورشة.
 //
 // الإجازات الرسمية المدفوعة مش مرتبطة بورشة معينة، فبتتحط في
 // مجموعة "بدون ورشة / إجازة رسمية".
@@ -620,7 +620,7 @@ export function buildSiteCostAllocation(
   schedule,
   summaries,
   monthKey,
-  basis = "net" // "net" | "netAfterDebt"
+  basis = "full" // "full" | "fullAfterDebt"
 ) {
   const summaryByWorker = {};
   for (const s of summaries) summaryByWorker[s.workerId] = s;
@@ -700,10 +700,22 @@ export function buildSiteCostAllocation(
 
     if (totalUnits <= 0) continue;
 
+    // --------------------------------------------------------
+    // مرتب العامل الكامل اللي بيتوزّع على الورش:
+    //
+    // = (الأساسي + بدل الأكل) حسب أيام الحضور الفعلية
+    //   - الضمان الاجتماعي (لو العامل عليه ضمان)
+    //
+    // من غير ما نخصم منه أي سلف أو مصاريف أو خصومات تانية،
+    // لأن دي حاجات شخصية خاصة بالعامل نفسه، ومش لها علاقة
+    // بتكلفة الورشة الفعلية.
+    // --------------------------------------------------------
+    const fullSalary = summary.totalBeforeDeductions - summary.inss;
+
     const amountToSplit =
-      basis === "netAfterDebt"
-        ? summary.net - (summary.debtBalance || 0)
-        : summary.net;
+      basis === "fullAfterDebt"
+        ? fullSalary - (summary.debtBalance || 0)
+        : fullSalary;
 
     const perUnitCost = amountToSplit / totalUnits;
 
@@ -737,7 +749,7 @@ export function buildSiteCostAllocation(
 
   // ------------------------------------------------------------
   // ورشة "OFFICE": مش هي نفسها بتتحسب كورشة ليها تكلفة مستقلة —
-  // موظفيها بيتوزّع صافي مرتبهم بالتساوي على باقي الورش الحقيقية
+  // موظفيها بيتوزّع مرتبهم الكامل بالتساوي على باقي الورش الحقيقية
   // (من غير "بدون ورشة / إجازة رسمية").
   // ------------------------------------------------------------
   const isOffice = (name) => (name || "").trim().toLowerCase() === "office";

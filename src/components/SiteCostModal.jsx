@@ -10,7 +10,7 @@ function money(n) {
 export default function SiteCostModal({
   sites,
   monthLabel,
-  costBasis = "net",
+  costBasis = "full",
   onChangeCostBasis,
   onClose,
 }) {
@@ -20,9 +20,9 @@ export default function SiteCostModal({
 
   function exportExcel() {
     const costLabel =
-      costBasis === "netAfterDebt"
-        ? "التكلفة (من الصافي بعد السلفة)"
-        : "التكلفة (من الصافي)";
+      costBasis === "fullAfterDebt"
+        ? "التكلفة (المرتب الكامل بعد السلفة)"
+        : "التكلفة (المرتب الكامل)";
 
     const sheets = sites.map((site) => ({
       name: site.name,
@@ -133,37 +133,37 @@ export default function SiteCostModal({
         </div>
 
         <p className="mt-2 text-[11px] text-out/70 sm:text-sm">
-          📌 التكلفة هنا موزّعة من{" "}
-          {costBasis === "netAfterDebt"
-            ? "الصافي بعد خصم السلفة"
-            : "الصافي"}{" "}
-          لكل عامل حسب نسبة أيام شغله في كل ورشة الشهر ده (والإجازات
-          الرسمية بتتحط في "بدون ورشة").
+          📌 التكلفة هنا موزّعة من مرتب العامل{" "}
+          <span className="font-semibold text-ink">الكامل</span>{" "}
+          (الأساسي + بدل الأكل) ناقص الضمان الاجتماعي بس لو موجود
+          {costBasis === "fullAfterDebt" ? " وناقص رصيد السلفة" : ""}، من غير
+          خصم أي مصاريف أو خصومات تانية، حسب نسبة أيام شغله في كل ورشة الشهر
+          ده (والإجازات الرسمية بتتحط في "بدون ورشة").
         </p>
 
         {/* Cost basis toggle */}
         {onChangeCostBasis && (
           <div className="print-hide mt-3 flex w-full rounded-xl border border-line/60 bg-white/80 p-1 shadow-sm sm:w-fit">
             <button
-              onClick={() => onChangeCostBasis("net")}
+              onClick={() => onChangeCostBasis("full")}
               className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition sm:flex-none sm:px-5 sm:py-2 sm:text-sm ${
-                costBasis === "net"
+                costBasis === "full"
                   ? "bg-linear-to-r from-ink to-gray-800 text-white shadow-md shadow-ink/20"
                   : "text-out hover:text-ink hover:bg-mist/50"
               }`}
             >
-              📊 بعد الصافي
+              📊 المرتب الكامل
             </button>
 
             <button
-              onClick={() => onChangeCostBasis("netAfterDebt")}
+              onClick={() => onChangeCostBasis("fullAfterDebt")}
               className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition sm:flex-none sm:px-5 sm:py-2 sm:text-sm ${
-                costBasis === "netAfterDebt"
+                costBasis === "fullAfterDebt"
                   ? "bg-linear-to-r from-ink to-gray-800 text-white shadow-md shadow-ink/20"
                   : "text-out hover:text-ink hover:bg-mist/50"
               }`}
             >
-              💰 بعد الصافي من السلفة
+              💰 المرتب الكامل بعد السلفة
             </button>
           </div>
         )}

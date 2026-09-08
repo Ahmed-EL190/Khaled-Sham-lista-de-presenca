@@ -94,7 +94,7 @@ export default function PayrollView({
     ],
   );
 
-  const [costBasis, setCostBasis] = useState("net");
+  const [costBasis, setCostBasis] = useState("full");
 
   const siteAllocation = useMemo(
     () =>
