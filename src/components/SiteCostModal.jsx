@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import logo from "../assets/logo.png";
 import { formatDateLong, todayKey } from "../lib/format";
-import { exportSheetsToExcel } from "../lib/excelExport";
+
 
 function money(n) {
   return `${Math.round(Number(n) || 0).toLocaleString("en-US")} Kz`;
@@ -18,7 +18,9 @@ export default function SiteCostModal({
 
   const grandTotal = sites.reduce((sum, s) => sum + s.totalCost, 0);
 
-  function exportExcel() {
+    async function exportExcel() {
+    const { exportSheetsToExcel } = await import("../lib/excelExport");
+
     const costLabel =
       costBasis === "fullAfterDebt"
         ? "التكلفة (المرتب الكامل بعد السلفة)"

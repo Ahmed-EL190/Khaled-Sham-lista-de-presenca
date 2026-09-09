@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { buildSiteDailyReports, buildWorkerSummaries } from "../lib/reports";
 import { computeAbsenceDays } from "../lib/payroll";
 import { formatMonthLabel, formatDateLong, formatDuration, formatTime } from "../lib/format";
-import { exportSheetsToExcel } from "../lib/excelExport";
 
 function money(n) {
   return `${(n || 0).toLocaleString("en-US")} Kz`;
@@ -22,7 +21,7 @@ export default function ReportsView({
   onRemoveExpense,
 }) {
   const [mode, setMode] = useState("worker");
-  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState(null); // null = لسه ما تخترش، هياخد آخر شهر فيه بيانات تلقائي
   const [selectedWorkerId, setSelectedWorkerId] = useState("all");
   const [selectedDay, setSelectedDay] = useState("all");
   const [siteSearch, setSiteSearch] = useState("");
@@ -38,20 +37,24 @@ export default function ReportsView({
     return Array.from(set).sort().reverse();
   }, [records, deductions, expenses]);
 
+  // بشكل افتراضي بنعرض آخر شهر فيه بيانات بس (أسرع بكتير)، لحد
+  // ما المستخدم يختار شهر تاني أو "كل الوقت" بنفسه.
+  const effectiveMonth = selectedMonth ?? (monthKeys[0] || "all");
+
   const filteredRecords = useMemo(() => {
-    if (selectedMonth === "all") return records;
-    return records.filter((r) => r.dateKey?.startsWith(selectedMonth));
-  }, [records, selectedMonth]);
+    if (effectiveMonth === "all") return records;
+    return records.filter((r) => r.dateKey?.startsWith(effectiveMonth));
+  }, [records, effectiveMonth]);
 
   const filteredDeductions = useMemo(() => {
-    if (selectedMonth === "all") return deductions;
-    return deductions.filter((d) => d.dateKey?.startsWith(selectedMonth));
-  }, [deductions, selectedMonth]);
+    if (effectiveMonth === "all") return deductions;
+    return deductions.filter((d) => d.dateKey?.startsWith(effectiveMonth));
+  }, [deductions, effectiveMonth]);
 
   const filteredExpenses = useMemo(() => {
-    if (selectedMonth === "all") return expenses;
-    return expenses.filter((e) => e.dateKey?.startsWith(selectedMonth));
-  }, [expenses, selectedMonth]);
+    if (effectiveMonth === "all") return expenses;
+    return expenses.filter((e) => e.dateKey?.startsWith(effectiveMonth));
+  }, [expenses, effectiveMonth]);
 
   const dayKeys = useMemo(() => {
     const set = new Set(
@@ -83,13 +86,13 @@ export default function ReportsView({
   );
 
   const workerAbsences = useMemo(() => {
-    if (selectedMonth === "all") return {};
+    if (effectiveMonth === "all") return {};
     const map = {};
     for (const w of workers) {
-      map[w.id] = computeAbsenceDays(w, filteredRecords, schedule, selectedMonth).absentDays;
+      map[w.id] = computeAbsenceDays(w, filteredRecords, schedule, effectiveMonth).absentDays;
     }
     return map;
-  }, [workers, filteredRecords, schedule, selectedMonth]);
+  }, [workers, filteredRecords, schedule, effectiveMonth]);
 
   const siteDailyReports = useMemo(
     () => buildSiteDailyReports(sites, dayFilteredRecords, dayFilteredDeductions, dayFilteredExpenses),
@@ -154,9 +157,10 @@ export default function ReportsView({
 
   const hasData = mode === "worker" ? visibleWorkerSummaries.length > 0 : visibleSiteReports.length > 0;
 
-  const periodLabel = selectedMonth === "all" ? "كل الوقت" : formatMonthLabel(selectedMonth);
+  const periodLabel = effectiveMonth === "all" ? "كل الوقت" : formatMonthLabel(effectiveMonth);
 
-  function exportReportExcel() {
+  async function exportReportExcel() {
+    const { exportSheetsToExcel } = await import("../lib/excelExport");
     const attendanceRows = dayFilteredRecords
       .filter((r) => r.checkIn)
       .map((r) => ({
@@ -257,14 +261,14 @@ export default function ReportsView({
           )}
 
           <select
-            value={selectedMonth}
+            value={effectiveMonth}
             onChange={(e) => {
               setSelectedMonth(e.target.value);
               setSelectedDay("all");
             }}
             className="rounded-xl border border-line/60 bg-white px-3 py-2 text-sm font-medium text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20"
           >
-            <option value="all">📅 كل الوقت</option>
+            <option value="all">📅 كل الوقت (أبطأ لو البيانات كتير)</option>
             {monthKeys.map((m) => (
               <option key={m} value={m}>
                 {formatMonthLabel(m)}
@@ -329,7 +333,7 @@ export default function ReportsView({
                   <span className="tabular rounded-full bg-mist/80 px-3 py-1.5 text-xs font-bold text-steel sm:px-4 sm:text-sm">
                     📅 {w.totalDays} يوم
                   </span>
-                  {selectedMonth !== "all" && (
+                  {effectiveMonth !== "all" && (
                     <span
                       title="عدد أيام الغياب في الشهر ده"
                       className={`tabular rounded-full px-3 py-1.5 text-xs font-bold sm:px-4 sm:text-sm ${

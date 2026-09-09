@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import logo from "../assets/logo.png";
 import { formatDateLong, todayKey } from "../lib/format";
-import { exportRowsToExcel } from "../lib/excelExport";
+
 
 export default function SiteSummaryModal({ sites, monthLabel, onClose }) {
   if (!sites) return null;
@@ -14,7 +14,9 @@ export default function SiteSummaryModal({ sites, monthLabel, onClose }) {
     for (const name of Object.keys(site.workers)) totalWorkers.add(name);
   }
 
-  function exportExcel() {
+  async function exportExcel() {
+    const { exportRowsToExcel } = await import("../lib/excelExport");
+
     const rows = sites.map((site) => ({
       الورشة: site.name,
       "عدد العمال": Object.keys(site.workers).length,

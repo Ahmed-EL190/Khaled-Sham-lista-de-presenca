@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { buildPayrollSummaries, buildSiteCostAllocation } from "../lib/payroll";
 import { buildSiteSummaries } from "../lib/reports";
 import { formatMonthLabel, formatTime, todayKey } from "../lib/format";
-import { exportRowsToExcel } from "../lib/excelExport";
 import PayslipModal from "./PayslipModal";
 import PayrollAllSlipModal from "./PayrollAllSlipModal";
 import SiteCostModal from "./SiteCostModal";
@@ -219,7 +218,8 @@ export default function PayrollView({
 
   const [showAllSlip, setShowAllSlip] = useState(false);
 
-  function exportPayrollExcel() {
+  async function exportPayrollExcel() {
+    const { exportRowsToExcel } = await import("../lib/excelExport");
     const rows = filteredSummaries.map((s, i) => ({
       "#": i + 1,
       العامل: s.name,
@@ -516,14 +516,6 @@ export default function PayrollView({
                             <p className="text-out">المستحق</p>
                             <p className="tabular mt-0.5 font-semibold text-ink">
                               {money(s.gross)}
-                            </p>
-                          </div>
-                          <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
-                            <p className="text-out">خصومات</p>
-                            <p className="tabular mt-0.5 font-semibold text-red-600">
-                              {s.deductionsTotal > 0
-                                ? `-${money(s.deductionsTotal)}`
-                                : "—"}
                             </p>
                           </div>
                           <div className="rounded-lg bg-page px-2 py-1.5 sm:px-3 sm:py-2">
