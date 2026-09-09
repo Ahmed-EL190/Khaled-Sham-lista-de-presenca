@@ -13,12 +13,14 @@ function useClock() {
 export default function Header({ presentCount, totalCount, siteLabel, onLogout }) {
   const now = useClock();
   const time = now.toLocaleTimeString("ar-EG-u-nu-latn", {
+    timeZone: "Africa/Luanda",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
   });
   const date = now.toLocaleDateString("ar-EG-u-nu-latn", {
+    timeZone: "Africa/Luanda",
     weekday: "long",
     year: "numeric",
     month: "long",

@@ -1,14 +1,31 @@
 export function todayKey(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
+  // CRITICAL: Use Africa/Luanda timezone for ALL attendance calculations
+  // This ensures the same date is used regardless of browser timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Luanda',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(date);
+  const getPartValue = (type) => parts.find(p => p.type === type)?.value || '0';
+  
+  const y = getPartValue('year');
+  const m = getPartValue('month');
+  const d = getPartValue('day');
+  
   return `${y}-${m}-${d}`;
 }
 
 export function formatTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
+  // CRITICAL: لازم نثبّت التوقيت على أنجولا (Africa/Luanda) وقت العرض،
+  // عشان لو حد فتح التطبيق من دولة تانية (زي مصر) يشوف نفس وقت الحضور/الانصراف
+  // بالظبط زي ما هو في أنجولا، مش الوقت المحلي بتاعه هو.
   return d.toLocaleTimeString("ar-EG-u-nu-latn", {
+    timeZone: "Africa/Luanda",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,

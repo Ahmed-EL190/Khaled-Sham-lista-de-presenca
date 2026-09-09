@@ -14,6 +14,7 @@ function formatPaidAt(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   const date = d.toLocaleDateString("ar-EG-u-nu-latn", {
+    timeZone: "Africa/Luanda",
     day: "numeric",
     month: "short",
   });
