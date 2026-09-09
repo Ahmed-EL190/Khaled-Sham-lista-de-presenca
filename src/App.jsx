@@ -15,7 +15,7 @@ import DeductionForm from "./components/DeductionForm";
 import ExpenseForm from "./components/ExpenseForm";
 import LateAttendanceForm from "./components/LateAttendanceForm";
 import SitePickerModal from "./components/SitePickerModal";
-import { todayKey } from "./lib/format";
+import { todayKey, isAngolaAutoCheckoutTime, getAutoCheckoutCutoffIso } from "./lib/format";
 import { authReady } from "./firebase";
 import {
   subscribeSites,
@@ -49,9 +49,6 @@ import {
   markSalaryPaid,
   markSalaryUnpaid,
 } from "./lib/firestore";
-
-const AUTO_CHECKOUT_HOUR = 17;
-const AUTO_CHECKOUT_MINUTE = 30;
 
 const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
@@ -133,15 +130,23 @@ export default function App() {
     if (!authed || !session) return;
 
     function runAutoCheckout() {
-      const now = new Date();
-      const cutoff = new Date(now);
-      cutoff.setHours(AUTO_CHECKOUT_HOUR, AUTO_CHECKOUT_MINUTE, 0, 0);
-      if (now < cutoff) return;
+      // Check if Angola local time has reached 17:30
+      if (!isAngolaAutoCheckoutTime()) {
+        return;
+      }
 
-      const cutoffIso = cutoff.toISOString();
+      // Get the cutoff time in ISO format (17:30 Angola time = 16:30 UTC)
+      const cutoffIso = getAutoCheckoutCutoffIso();
+      
+      console.log('[AUTO_CHECKOUT] Triggering auto punch-out for employees', {
+        cutoffIso,
+        employeeCount: todayRecords.filter((r) => r.checkIn && !r.checkOut).length
+      });
+
       todayRecords
         .filter((r) => r.checkIn && !r.checkOut)
         .forEach((r) => {
+          console.log(`[AUTO_CHECKOUT] Punching out employee: ${r.workerName}`);
           autoPunchOut({
             dateKey: today,
             workerId: r.workerId,
