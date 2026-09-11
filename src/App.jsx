@@ -47,7 +47,15 @@ import {
   subscribePayments,
   markSalaryPaid,
   markSalaryUnpaid,
+  subscribeBudgetEntries,
+  addBudgetEntry,
+  updateBudgetEntry,
+  removeBudgetEntry,
+  subscribeBudgetPlans,
+  saveBudgetPlan,
+  removeBudgetPlan,
 } from "./lib/firestore";
+import BudgetView from "./components/BudgetView";
 
 const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
@@ -64,6 +72,7 @@ const OWNER_TABS = [
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
   { id: "payroll", label: "الرواتب" },
+  { id: "budget", label: "الميزانية" },
   { id: "logs", label: "الخصومات والمصروفات" },
   { id: "manage", label: "الإدارة" },
 ];
@@ -79,6 +88,8 @@ export default function App() {
   const [deductions, setDeductions] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [budgetEntries, setBudgetEntries] = useState([]);
+  const [budgetPlans, setBudgetPlans] = useState([]);
   const [tab, setTab] = useState("today");
   const [search, setSearch] = useState("");
   const [pendingWorkerId, setPendingWorkerId] = useState(null);
@@ -114,6 +125,12 @@ export default function App() {
     const unsubDeductions = subscribeDeductions(scopeSiteId, setDeductions);
     const unsubExpenses = subscribeExpenses(scopeSiteId, setExpenses);
     const unsubPayments = subscribePayments(setPayments);
+    const unsubBudgetEntries = isOwner
+      ? subscribeBudgetEntries(setBudgetEntries)
+      : () => {};
+    const unsubBudgetPlans = isOwner
+      ? subscribeBudgetPlans(setBudgetPlans)
+      : () => {};
     return () => {
       unsubWorkers();
       unsubToday();
@@ -121,6 +138,8 @@ export default function App() {
       unsubDeductions();
       unsubExpenses();
       unsubPayments();
+      unsubBudgetEntries();
+      unsubBudgetPlans();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, session, scopeSiteId, today, isOwner]);
@@ -252,6 +271,7 @@ export default function App() {
       history: "📋",
       reports: "📊",
       payroll: "💰",
+      budget: "💼",
       logs: "📝",
       manage: "⚙️",
       late: "⏰",
@@ -319,7 +339,9 @@ export default function App() {
             >
               <span className="flex items-center gap-2">
                 <span>{getTabIcon(tab)}</span>
-                <span>{tabs.find((t) => t.id === tab)?.label || "القائمة"}</span>
+                <span>
+                  {tabs.find((t) => t.id === tab)?.label || "القائمة"}
+                </span>
               </span>
               <svg
                 className={`h-5 w-5 transition-transform duration-200 ${
@@ -330,7 +352,11 @@ export default function App() {
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M6 9l6 6 6-6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
             {isTabsOpen && (
@@ -603,6 +629,18 @@ export default function App() {
               })
             }
             onRemoveAttendance={deleteRecord}
+          />
+        )}
+
+        {tab === "budget" && isOwner && (
+          <BudgetView
+            entries={budgetEntries}
+            plans={budgetPlans}
+            onAddEntry={addBudgetEntry}
+            onUpdateEntry={updateBudgetEntry}
+            onRemoveEntry={removeBudgetEntry}
+            onSavePlan={saveBudgetPlan}
+            onRemovePlan={removeBudgetPlan}
           />
         )}
 

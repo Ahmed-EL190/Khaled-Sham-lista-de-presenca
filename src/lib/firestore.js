@@ -234,6 +234,58 @@ export function markSalaryUnpaid({ monthKey, workerId }) {
   return deleteDoc(doc(db, "payments", paymentId(monthKey, workerId)));
 }
 
+// ---------- Budget (ميزانية الشركة العمومية - دخل/مصروف بالبند + خطة شهرية) ----------
+export function subscribeBudgetEntries(cb) {
+  return onSnapshot(collection(db, "budgetEntries"), (snap) => cb(docsFromSnap(snap)));
+}
+
+export function addBudgetEntry({ monthKey, type, category, amount, note, dateKey }) {
+  return addDoc(collection(db, "budgetEntries"), {
+    monthKey,
+    type: type === "income" ? "income" : "expense",
+    category: category || "أخرى",
+    amount: Number(amount) || 0,
+    note: note || "",
+    dateKey: dateKey || todayKey(),
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export function updateBudgetEntry(id, patch) {
+  return setDoc(doc(db, "budgetEntries", id), patch, { merge: true });
+}
+
+export function removeBudgetEntry(id) {
+  return deleteDoc(doc(db, "budgetEntries", id));
+}
+
+// خطة الميزانية: مبلغ مخصص لكل بند في كل شهر، عشان نقارن بيه المصروف/الدخل الفعلي.
+// doc id ثابت لكل (شهر + نوع + بند) عشان يكون upsert بسيط زي الحضور.
+function budgetPlanId(monthKey, type, category) {
+  return `${monthKey}__${type}__${category}`;
+}
+
+export function subscribeBudgetPlans(cb) {
+  return onSnapshot(collection(db, "budgetPlans"), (snap) => cb(docsFromSnap(snap)));
+}
+
+export function saveBudgetPlan({ monthKey, type, category, plannedAmount }) {
+  return setDoc(
+    doc(db, "budgetPlans", budgetPlanId(monthKey, type, category)),
+    {
+      monthKey,
+      type: type === "income" ? "income" : "expense",
+      category,
+      plannedAmount: Number(plannedAmount) || 0,
+    },
+    { merge: true }
+  );
+}
+
+export function removeBudgetPlan({ monthKey, type, category }) {
+  return deleteDoc(doc(db, "budgetPlans", budgetPlanId(monthKey, type, category)));
+}
+
 // ---------- Purge (delete worker + ALL their history everywhere) ----------
 export async function purgeWorker(workerId) {
   const recordsQ = query(collection(db, "records"), where("workerId", "==", workerId));
