@@ -110,17 +110,6 @@ export function punchOut({ dateKey, workerId }) {
   );
 }
 
-// انصراف تلقائي: بيتسجل لو حد نسي يعمل انصراف بعد معاد معين (5:30 مساءً افتراضيًا).
-// بيتحط checkOut بوقت المعاد نفسه (مش وقت تشغيل الفحص)، وبيتحط علامة autoCheckedOut
-// عشان يبان في الواجهة إنه مش انصراف حقيقي اتسجل.
-export function autoPunchOut({ dateKey, workerId, checkOutAt }) {
-  return setDoc(
-    doc(db, "records", recordId(dateKey, workerId)),
-    { checkOut: checkOutAt, autoCheckedOut: true },
-    { merge: true }
-  );
-}
-
 export function clearCheckOut({ dateKey, workerId }) {
   return setDoc(
     doc(db, "records", recordId(dateKey, workerId)),

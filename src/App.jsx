@@ -15,7 +15,7 @@ import DeductionForm from "./components/DeductionForm";
 import ExpenseForm from "./components/ExpenseForm";
 import LateAttendanceForm from "./components/LateAttendanceForm";
 import SitePickerModal from "./components/SitePickerModal";
-import { todayKey, isAngolaAutoCheckoutTime, getAutoCheckoutCutoffIso } from "./lib/format";
+import { todayKey } from "./lib/format";
 import { authReady } from "./firebase";
 import {
   subscribeSites,
@@ -31,7 +31,6 @@ import {
   subscribeAllRecords,
   punchIn,
   punchOut,
-  autoPunchOut,
   clearCheckOut,
   deleteRecord,
   subscribeSchedule,
@@ -126,40 +125,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, session, scopeSiteId, today, isOwner]);
 
-  useEffect(() => {
-    if (!authed || !session) return;
-
-    function runAutoCheckout() {
-      // Check if Angola local time has reached 17:30
-      if (!isAngolaAutoCheckoutTime()) {
-        return;
-      }
-
-      // Get the cutoff time in ISO format (17:30 Angola time = 16:30 UTC)
-      const cutoffIso = getAutoCheckoutCutoffIso();
-      
-      console.log('[AUTO_CHECKOUT] Triggering auto punch-out for employees', {
-        cutoffIso,
-        employeeCount: todayRecords.filter((r) => r.checkIn && !r.checkOut).length
-      });
-
-      todayRecords
-        .filter((r) => r.checkIn && !r.checkOut)
-        .forEach((r) => {
-          console.log(`[AUTO_CHECKOUT] Punching out employee: ${r.workerName}`);
-          autoPunchOut({
-            dateKey: today,
-            workerId: r.workerId,
-            checkOutAt: cutoffIso,
-          });
-        });
-    }
-
-    runAutoCheckout();
-    const interval = setInterval(runAutoCheckout, 60 * 1000);
-    return () => clearInterval(interval);
-  }, [authed, session, todayRecords, today]);
-
   const todayByWorker = useMemo(() => {
     const map = {};
     for (const r of todayRecords) map[r.workerId] = r;
@@ -210,6 +175,24 @@ export default function App() {
     setSession(null);
     setCheckoutMode(false);
     setIsTabsOpen(false);
+  }
+
+  const [lastBulkCheckout, setLastBulkCheckout] = useState(null); // { workerIds: string[] }
+
+  function handleCheckoutAllPresent() {
+    const present = todayRecords.filter((r) => r.checkIn && !r.checkOut);
+    present.forEach((r) => {
+      punchOut({ dateKey: today, workerId: r.workerId });
+    });
+    setLastBulkCheckout({ workerIds: present.map((r) => r.workerId) });
+  }
+
+  function handleUndoBulkCheckout() {
+    if (!lastBulkCheckout) return;
+    lastBulkCheckout.workerIds.forEach((workerId) => {
+      clearCheckOut({ dateKey: today, workerId });
+    });
+    setLastBulkCheckout(null);
   }
 
   function handlePunch(workerId) {
@@ -413,6 +396,9 @@ export default function App() {
             schedule={schedule}
             onGoToToday={() => setTab("today")}
             onGoToPayroll={() => setTab("payroll")}
+            onCheckoutAll={handleCheckoutAllPresent}
+            canUndoCheckoutAll={!!lastBulkCheckout}
+            onUndoCheckoutAll={handleUndoBulkCheckout}
           />
         )}
 

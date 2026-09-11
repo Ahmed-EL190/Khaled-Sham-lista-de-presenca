@@ -16,6 +16,9 @@ export default function DashboardView({
   schedule,
   onGoToToday,
   onGoToPayroll,
+  onCheckoutAll,
+  canUndoCheckoutAll,
+  onUndoCheckoutAll,
 }) {
   const currentMonth = todayKey().slice(0, 7);
 
@@ -133,6 +136,54 @@ export default function DashboardView({
           </p>
         </div>
       </div>
+
+      {/* تراجع فوري لو الانصراف الجماعي حصل بالغلط */}
+      {canUndoCheckoutAll && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200/60 bg-amber-50/60 p-4 shadow-sm sm:p-5">
+          <div>
+            <p className="text-sm font-bold text-amber-800 sm:text-base">
+              ✅ اتسجل انصراف جماعي
+            </p>
+            {/* <p className="mt-0.5 text-xs text-amber-700/80 sm:text-sm">
+              لو ده حصل بالغلط، تقدر ترجّع كل العمال دول لحالة "حاضر" على طول
+            </p> */}
+          </div>
+          <button
+            onClick={onUndoCheckoutAll}
+            className="shrink-0 rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-bold text-amber-800 shadow-sm transition hover:bg-amber-100 sm:px-5 sm:py-3"
+          >
+            ↩️ تراجع
+          </button>
+        </div>
+      )}
+
+      {/* زرار انصراف جماعي لكل الحاضرين دلوقتي */}
+      {presentNow > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-emerald-200/60 bg-emerald-50/50 p-4 shadow-sm sm:p-5">
+          <div>
+            <p className="text-sm font-bold text-emerald-800 sm:text-base">
+              {presentNow} عامل لسه حاضر دلوقتي
+            </p>
+            {/* <p className="mt-0.5 text-xs text-emerald-700/80 sm:text-sm">
+              هتسجّل انصراف لكل العمال الحاضرين دفعة واحدة بوقت النهاردة الحالي
+            </p> */}
+          </div>
+          <button
+            onClick={() => {
+              if (
+                window.confirm(
+                  `متأكد إنك عايز تسجل انصراف لـ ${presentNow} عامل دفعة واحدة؟`
+                )
+              ) {
+                onCheckoutAll?.();
+              }
+            }}
+            className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 sm:px-5 sm:py-3"
+          >
+            🔴 انصراف الكل
+          </button>
+        </div>
+      )}
 
       {/* Payroll summary - تصميم محسن مع تدرج لوني */}
       <div className="rounded-2xl border border-line/60 bg-linear-to-br from-white to-gray-50/80 p-4 shadow-sm sm:p-5">

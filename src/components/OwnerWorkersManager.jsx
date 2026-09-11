@@ -32,6 +32,19 @@ export default function OwnerWorkersManager({
     return map;
   }, [workers, records, schedule, currentMonthKey]);
 
+  // آخر ورشة اشتغل فيها كل عامل (بناءً على أحدث سجل حضور ليه)
+  const lastSiteByWorker = useMemo(() => {
+    const map = {};
+    for (const r of records) {
+      if (!r.workerId || !r.siteName) continue;
+      const current = map[r.workerId];
+      if (!current || r.dateKey > current.dateKey) {
+        map[r.workerId] = { siteName: r.siteName, dateKey: r.dateKey };
+      }
+    }
+    return map;
+  }, [records]);
+
   const [bulkOpen, setBulkOpen] = useState(false);
   const [salaryMode, setSalaryMode] = useState(false);
 
@@ -560,7 +573,17 @@ ADELINO DA SILVA"
               {/* Header */}
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-base font-bold text-ink sm:text-lg">{w.name}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-base font-bold text-ink sm:text-lg">{w.name}</p>
+                    {lastSiteByWorker[w.id] && (
+                      <span
+                        title="آخر ورشة اشتغل فيها العامل ده"
+                        className="rounded-full bg-steel/10 px-2 py-0.5 text-[10px] font-semibold text-steel sm:text-xs"
+                      >
+                        🏗️ {lastSiteByWorker[w.id].siteName}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => editStartDate(w)}
                     title="تعديل تاريخ بدء الشغل"
