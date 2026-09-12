@@ -7,15 +7,18 @@ import { useRegisterSW } from "virtual:pwa-register/react";
 const CURRENT_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "";
 
 const CHECK_INTERVAL_MS = 60 * 1000; // كل دقيقة
+const AUTO_UPDATE_DELAY_MS = 6 * 1000; // لو المستخدم مدوسش تحديث بنفسه، بنحدّث تلقائي بعد المدة دي
 
 // الطريقة دي مستقلة تمامًا عن حالة الـ Service Worker (اللي أحيانًا بيحدّث
 // نفسه بصمت من غير ما يقولنا، أو العكس). إحنا بنسأل السيرفر بنفسنا كل دقيقة:
 // "إيه رقم آخر نسخة منشورة؟" (ملف version.json بيتقرا بكاش معطّل تمامًا)،
-// ولو مختلف عن اللي شغالين بيه، نوري رسالة وناخد المستخدم لآخر نسخة.
+// ولو مختلف عن اللي شغالين بيه، نحدّث تلقائي (من غير ما نستنى المستخدم يدوس
+// حاجة) عشان أي إصلاح مهم يوصل لكل الأجهزة فورًا، حتى لو حد نسي يدوس "تحديث".
 export default function UpdatePrompt() {
   const [updating, setUpdating] = useState(false);
   const [versionMismatch, setVersionMismatch] = useState(false);
   const checkingRef = useRef(false);
+  const autoUpdateTimerRef = useRef(null);
 
   // بنستخدمها بس عشان رسالة "التطبيق جاهز يشتغل من غير نت" (أول مرة بس)
   const {
@@ -78,6 +81,18 @@ export default function UpdatePrompt() {
     }
   }
 
+  // لو ظهر إن في نسخة جديدة ومحدش دوس "تحديث" بنفسه، بنحدّث تلقائي بعد شوية
+  // ثواني بس، عشان أي إصلاح مهم (زي إصلاحات الأخطاء) يوصل للكل من غير ما
+  // يعتمد على إن حد يلاحظ الرسالة ويدوس عليها.
+  useEffect(() => {
+    if (!versionMismatch || updating) return;
+    autoUpdateTimerRef.current = setTimeout(() => {
+      handleUpdate();
+    }, AUTO_UPDATE_DELAY_MS);
+    return () => clearTimeout(autoUpdateTimerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [versionMismatch]);
+
   function closeOfflineReady() {
     setOfflineReady(false);
   }
@@ -91,7 +106,7 @@ export default function UpdatePrompt() {
           <>
             <span className="flex-1 text-xs font-semibold text-ink sm:text-sm">
               <span className="mr-1.5 text-lg">🔄</span>
-              في نسخة جديدة من التطبيق — حدّث دلوقتي؟
+              في نسخة جديدة من التطبيق — هيحدّث تلقائي خلال ثواني
             </span>
             <button
               type="button"
@@ -108,7 +123,7 @@ export default function UpdatePrompt() {
                   بيحدّث…
                 </span>
               ) : (
-                "تحديث"
+                "حدّث دلوقتي"
               )}
             </button>
           </>
