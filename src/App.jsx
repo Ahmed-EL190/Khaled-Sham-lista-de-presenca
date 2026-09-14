@@ -31,7 +31,6 @@ import {
   subscribeAllRecords,
   punchIn,
   punchOut,
-  autoPunchOut,
   clearCheckOut,
   deleteRecord,
   subscribeSchedule,
@@ -48,11 +47,15 @@ import {
   subscribePayments,
   markSalaryPaid,
   markSalaryUnpaid,
+  subscribeBudgetEntries,
+  addBudgetEntry,
+  updateBudgetEntry,
+  removeBudgetEntry,
+  subscribeBudgetPlans,
+  saveBudgetPlan,
+  removeBudgetPlan,
 } from "./lib/firestore";
-
-// انصراف تلقائي: أي حد نسي يعمل انصراف بيتسجله الموقع أوتوماتيك بعد الساعة دي.
-const AUTO_CHECKOUT_HOUR = 17;
-const AUTO_CHECKOUT_MINUTE = 30;
+import BudgetView from "./components/BudgetView";
 
 const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
@@ -69,6 +72,7 @@ const OWNER_TABS = [
   { id: "history", label: "السجل" },
   { id: "reports", label: "التقارير" },
   { id: "payroll", label: "الرواتب" },
+  { id: "budget", label: "الميزانية" },
   { id: "logs", label: "الخصومات والمصروفات" },
   { id: "manage", label: "الإدارة" },
 ];
@@ -84,10 +88,13 @@ export default function App() {
   const [deductions, setDeductions] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [budgetEntries, setBudgetEntries] = useState([]);
+  const [budgetPlans, setBudgetPlans] = useState([]);
   const [tab, setTab] = useState("today");
   const [search, setSearch] = useState("");
   const [pendingWorkerId, setPendingWorkerId] = useState(null);
   const [checkoutMode, setCheckoutMode] = useState(false);
+  const [isTabsOpen, setIsTabsOpen] = useState(false);
 
   const today = todayKey();
   const isOwner = session?.role === "owner";
@@ -118,6 +125,12 @@ export default function App() {
     const unsubDeductions = subscribeDeductions(scopeSiteId, setDeductions);
     const unsubExpenses = subscribeExpenses(scopeSiteId, setExpenses);
     const unsubPayments = subscribePayments(setPayments);
+    const unsubBudgetEntries = isOwner
+      ? subscribeBudgetEntries(setBudgetEntries)
+      : () => {};
+    const unsubBudgetPlans = isOwner
+      ? subscribeBudgetPlans(setBudgetPlans)
+      : () => {};
     return () => {
       unsubWorkers();
       unsubToday();
@@ -125,36 +138,11 @@ export default function App() {
       unsubDeductions();
       unsubExpenses();
       unsubPayments();
+      unsubBudgetEntries();
+      unsubBudgetPlans();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, session, scopeSiteId, today, isOwner]);
-  // انصراف تلقائي بعد الساعة 5:30 مساءً لأي عامل حضر ونسي يعمل انصراف.
-  // بيتفحص فور فتح الموقع، وبعدين كل دقيقة، طول ما الموقع فاتح عند حد.
-  useEffect(() => {
-    if (!authed || !session) return;
-
-    function runAutoCheckout() {
-      const now = new Date();
-      const cutoff = new Date(now);
-      cutoff.setHours(AUTO_CHECKOUT_HOUR, AUTO_CHECKOUT_MINUTE, 0, 0);
-      if (now < cutoff) return;
-
-      const cutoffIso = cutoff.toISOString();
-      todayRecords
-        .filter((r) => r.checkIn && !r.checkOut)
-        .forEach((r) => {
-          autoPunchOut({
-            dateKey: today,
-            workerId: r.workerId,
-            checkOutAt: cutoffIso,
-          });
-        });
-    }
-
-    runAutoCheckout();
-    const interval = setInterval(runAutoCheckout, 60 * 1000);
-    return () => clearInterval(interval);
-  }, [authed, session, todayRecords, today]);
 
   const todayByWorker = useMemo(() => {
     const map = {};
@@ -176,7 +164,6 @@ export default function App() {
     [workers, searchTerm],
   );
 
-  // ---- وضع الانصراف: بس العمال اللي سجلوا حضور في ورشة الفورمان النهاردة ولسه ما خرجوش ----
   const presentAtMySite = useMemo(
     () =>
       todayRecords.filter(
@@ -200,11 +187,31 @@ export default function App() {
     setTab(newSession.role === "owner" ? "dashboard" : "today");
     setSearch("");
     setCheckoutMode(false);
+    setIsTabsOpen(false);
   }
 
   function handleLogout() {
     setSession(null);
     setCheckoutMode(false);
+    setIsTabsOpen(false);
+  }
+
+  const [lastBulkCheckout, setLastBulkCheckout] = useState(null); // { workerIds: string[] }
+
+  function handleCheckoutAllPresent() {
+    const present = todayRecords.filter((r) => r.checkIn && !r.checkOut);
+    present.forEach((r) => {
+      punchOut({ dateKey: today, workerId: r.workerId });
+    });
+    setLastBulkCheckout({ workerIds: present.map((r) => r.workerId) });
+  }
+
+  function handleUndoBulkCheckout() {
+    if (!lastBulkCheckout) return;
+    lastBulkCheckout.workerIds.forEach((workerId) => {
+      clearCheckOut({ dateKey: today, workerId });
+    });
+    setLastBulkCheckout(null);
   }
 
   function handlePunch(workerId) {
@@ -216,7 +223,7 @@ export default function App() {
       punchOut({ dateKey: today, workerId });
       return;
     }
-    if (entry?.checkIn) return; // خلص يومه، لو غلط استخدم "تصحيح"
+    if (entry?.checkIn) return;
 
     if (sites.length <= 1) {
       const site = sites[0];
@@ -257,6 +264,23 @@ export default function App() {
     }
   }
 
+  const getTabIcon = (id) => {
+    const icons = {
+      dashboard: "🏠",
+      today: "📅",
+      history: "📋",
+      reports: "📊",
+      payroll: "💰",
+      budget: "💼",
+      logs: "📝",
+      manage: "⚙️",
+      late: "⏰",
+      deduction: "➖",
+      expense: "💳",
+    };
+    return icons[id] || "•";
+  };
+
   if (!authed) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-out">
@@ -285,7 +309,7 @@ export default function App() {
     );
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden bg-gray-50">
       <Header
         presentCount={presentCount}
         totalCount={workers.length}
@@ -304,19 +328,87 @@ export default function App() {
         />
       )}
 
-      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-5 sm:py-6">
-        <nav className="mb-5 flex w-fit flex-wrap gap-1 rounded-lg border border-line bg-white p-1">
-          {tabs.map((t) => (
+      <main className="mx-auto max-w-5xl px-3 py-4 sm:px-5 sm:py-6">
+        {/* التبويبات - تصميم محسن للشاشات الكبيرة والموبايل */}
+        <nav className="mb-4 sm:mb-5">
+          {/* نسخة الموبايل - قائمة منسدلة */}
+          <div className="sm:hidden">
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:px-4 sm:text-sm ${
-                tab === t.id ? "bg-ink text-white" : "text-out hover:text-ink"
-              }`}
+              onClick={() => setIsTabsOpen(!isTabsOpen)}
+              className="flex w-full items-center justify-between rounded-lg border border-line bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm"
             >
-              {t.label}
+              <span className="flex items-center gap-2">
+                <span>{getTabIcon(tab)}</span>
+                <span>
+                  {tabs.find((t) => t.id === tab)?.label || "القائمة"}
+                </span>
+              </span>
+              <svg
+                className={`h-5 w-5 transition-transform duration-200 ${
+                  isTabsOpen ? "rotate-180" : ""
+                }`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  d="M6 9l6 6 6-6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
-          ))}
+            {isTabsOpen && (
+              <div className="absolute z-20 mt-1 w-[calc(100%-24px)] rounded-lg border border-line bg-white shadow-xl">
+                {tabs.map((t, index) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      setTab(t.id);
+                      setIsTabsOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-3 px-4 py-3 text-right text-sm font-semibold transition ${
+                      tab === t.id
+                        ? "bg-ink text-white"
+                        : "text-ink hover:bg-mist/50"
+                    } ${index !== tabs.length - 1 ? "border-b border-line" : ""}`}
+                  >
+                    <span className="text-lg">{getTabIcon(t.id)}</span>
+                    <span>{t.label}</span>
+                    {tab === t.id && (
+                      <span className="mr-auto text-white">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* نسخة الشاشات الكبيرة - تبويبات متجاوبة وجميلة */}
+          <div className="hidden sm:block">
+            <div className="flex flex-wrap items-center justify-center gap-1 rounded-2xl border border-line/60 bg-white/80 p-1.5 shadow-sm backdrop-blur-sm">
+              {tabs.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`group relative rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    tab === t.id
+                      ? "bg-linear-to-r from-ink to-gray-800 text-white shadow-lg shadow-ink/20"
+                      : "text-out hover:text-ink hover:bg-mist/50"
+                  }`}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <span className="text-base">{getTabIcon(t.id)}</span>
+                    <span>{t.label}</span>
+                  </span>
+                  {tab === t.id && (
+                    <span className="absolute inset-0 rounded-xl bg-linear-to-r from-ink to-gray-800 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         </nav>
 
         {tab === "dashboard" && isOwner && (
@@ -330,31 +422,38 @@ export default function App() {
             schedule={schedule}
             onGoToToday={() => setTab("today")}
             onGoToPayroll={() => setTab("payroll")}
+            onCheckoutAll={handleCheckoutAllPresent}
+            canUndoCheckoutAll={!!lastBulkCheckout}
+            onUndoCheckoutAll={handleUndoBulkCheckout}
           />
         )}
 
         {tab === "today" && !isOwner && (
           <>
-            <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="دور على اسم عامل..."
-                className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs sm:px-4"
               />
-              <div className="flex rounded-lg border border-line bg-white p-1">
+              <div className="flex w-full rounded-lg border border-line bg-white p-1 sm:w-auto">
                 <button
                   onClick={() => setCheckoutMode(false)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
-                    !checkoutMode ? "bg-ink text-white" : "text-out hover:text-ink"
+                  className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition sm:flex-none sm:px-3 sm:text-sm ${
+                    !checkoutMode
+                      ? "bg-ink text-white"
+                      : "text-out hover:text-ink"
                   }`}
                 >
                   الكل
                 </button>
                 <button
                   onClick={() => setCheckoutMode(true)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
-                    checkoutMode ? "bg-ink text-white" : "text-out hover:text-ink"
+                  className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition sm:flex-none sm:px-3 sm:text-sm ${
+                    checkoutMode
+                      ? "bg-ink text-white"
+                      : "text-out hover:text-ink"
                   }`}
                 >
                   انصراف ({presentAtMySite.length})
@@ -364,15 +463,15 @@ export default function App() {
 
             {checkoutMode ? (
               presentAtMySite.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+                <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                   مفيش حد لسه في الورشة محتاج انصراف
                 </div>
               ) : filteredPresentAtMySite.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+                <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                   مفيش عامل بالاسم ده
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {filteredPresentAtMySite.map((r) => (
                     <WorkerCard
                       key={r.workerId}
@@ -385,15 +484,15 @@ export default function App() {
                 </div>
               )
             ) : workers.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+              <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                 لسه مفيش عمال متضافين، كلم صاحب الشركة يضيفهم
               </div>
             ) : filteredWorkers.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+              <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                 مفيش عامل بالاسم ده
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {filteredWorkers.map((worker) => (
                   <WorkerCard
                     key={worker.id}
@@ -409,16 +508,16 @@ export default function App() {
         )}
 
         {tab === "today" && isOwner && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 sm:gap-6">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="دور على اسم عامل..."
-              className="w-full rounded-lg border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs"
+              className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-steel sm:max-w-xs sm:px-4"
             />
 
             {sites.length === 0 && (
-              <div className="rounded-xl border border-dashed border-line bg-white/60 py-14 text-center text-sm text-out">
+              <div className="rounded-xl border border-dashed border-line bg-white/60 py-12 text-center text-sm text-out sm:py-14">
                 لسه مفيش ورش مضافة
               </div>
             )}
@@ -438,18 +537,20 @@ export default function App() {
               ).length;
               return (
                 <div key={site.id}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <h2 className="text-sm font-bold text-ink">{site.name}</h2>
-                    <span className="tabular rounded-full bg-mist px-2.5 py-1 text-xs font-bold text-steel">
-                      {sitePresent} في الورشة دلوقتي
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-1">
+                    <h2 className="text-sm font-bold text-ink sm:text-base">
+                      {site.name}
+                    </h2>
+                    <span className="tabular rounded-full bg-mist px-2 py-1 text-xs font-bold text-steel sm:px-2.5">
+                      {sitePresent} في الورشة
                     </span>
                   </div>
                   {siteRecords.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-line bg-white/60 px-4 py-3 text-xs text-out">
+                    <p className="rounded-lg border border-dashed border-line bg-white/60 px-3 py-3 text-xs text-out sm:px-4">
                       محدش سجل حضور في الورشة دي النهاردة
                     </p>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                       {siteRecords.map((r) => (
                         <WorkerCard
                           key={r.workerId}
@@ -466,10 +567,10 @@ export default function App() {
 
             {pendingWorkers.length > 0 && (
               <div>
-                <h2 className="mb-2 text-sm font-bold text-ink">
+                <h2 className="mb-2 text-sm font-bold text-ink sm:text-base">
                   لسه ما جوش النهاردة
                 </h2>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {pendingWorkers.map((w) => (
                     <WorkerCard key={w.id} worker={w} entry={null} readOnly />
                   ))}
@@ -531,6 +632,18 @@ export default function App() {
           />
         )}
 
+        {tab === "budget" && isOwner && (
+          <BudgetView
+            entries={budgetEntries}
+            plans={budgetPlans}
+            onAddEntry={addBudgetEntry}
+            onUpdateEntry={updateBudgetEntry}
+            onRemoveEntry={removeBudgetEntry}
+            onSavePlan={saveBudgetPlan}
+            onRemovePlan={removeBudgetPlan}
+          />
+        )}
+
         {tab === "logs" && isOwner && (
           <LogsView
             deductions={deductions}
@@ -588,7 +701,7 @@ export default function App() {
         )}
 
         {tab === "manage" && isOwner && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:gap-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <SitesManager
                 sites={sites}

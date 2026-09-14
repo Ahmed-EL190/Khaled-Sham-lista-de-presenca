@@ -23,16 +23,24 @@ export default function OfflineBanner() {
 
   if (!online) {
     return (
-      <div className="flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-semibold text-amber-800">
-        <span>📶 مفيش نت دلوقتي — كمّل تسجيل الحضور عادي، هيترفع تلقائي لما النت يرجع</span>
+      <div className="sticky top-0 z-40 flex items-center justify-center gap-3 border-b border-amber-200/80 bg-linear-to-r from-amber-50 to-amber-100/80 px-4 py-3 text-center text-xs font-semibold text-amber-800 shadow-sm backdrop-blur-sm transition-all sm:py-3.5 sm:text-sm">
+        <span className="text-xl">📶</span>
+        <span className="flex-1">
+          مفيش نت دلوقتي — كمّل تسجيل الحضور عادي، هيترفع تلقائي لما النت يرجع
+        </span>
+        <span className="hidden h-2 w-2 animate-pulse rounded-full bg-amber-500 sm:block"></span>
       </div>
     );
   }
 
   if (showReconnected) {
     return (
-      <div className="flex items-center justify-center gap-2 border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-xs font-semibold text-emerald-800">
-        <span>✅ النت رجع — بيرفع اللي اتسجل أوفلاين دلوقتي</span>
+      <div className="sticky top-0 z-40 flex items-center justify-center gap-3 border-b border-emerald-200/80 bg-linear-to-r from-emerald-50 to-emerald-100/80 px-4 py-3 text-center text-xs font-semibold text-emerald-800 shadow-sm backdrop-blur-sm transition-all sm:py-3.5 sm:text-sm">
+        <span className="text-xl">✅</span>
+        <span className="flex-1">
+          النت رجع — بيرفع اللي اتسجل أوفلاين دلوقتي
+        </span>
+        <span className="hidden h-2 w-2 animate-pulse rounded-full bg-emerald-500 sm:block"></span>
       </div>
     );
   }

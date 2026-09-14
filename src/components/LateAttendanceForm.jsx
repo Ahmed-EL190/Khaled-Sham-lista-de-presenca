@@ -11,14 +11,17 @@ export default function LateAttendanceForm({ workers, onSubmit }) {
   const [mode, setMode] = useState("single");
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-3">
-      <div className="mx-auto inline-flex w-fit rounded-lg border border-line bg-white p-1">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4 sm:gap-5">
+      {/* أزرار تبديل الوضع */}
+      <div className="mx-auto flex w-full rounded-2xl border border-line/60 bg-white/80 p-1 shadow-sm sm:w-fit">
         {MODES.map((m) => (
           <button
             key={m.id}
             onClick={() => setMode(m.id)}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:px-4 sm:text-sm ${
-              mode === m.id ? "bg-ink text-white" : "text-out hover:text-ink"
+            className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold transition sm:flex-none sm:px-5 sm:py-2.5 sm:text-sm ${
+              mode === m.id 
+                ? "bg-linear-to-r from-ink to-gray-800 text-white shadow-md shadow-ink/20"
+                : "text-out hover:text-ink hover:bg-mist/50"
             }`}
           >
             {m.label}
@@ -67,59 +70,74 @@ function SingleForm({ workers, onSubmit }) {
   }
 
   return (
-    <div className="rounded-xl border border-line bg-white p-5">
-      <h3 className="text-sm font-bold text-ink">تسجيل حضور متأخر</h3>
-      <p className="mt-0.5 text-xs text-out">
+    <div className="rounded-2xl border border-line/60 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex items-center gap-2 border-b border-line/60 pb-3">
+        <span className="text-xl">⏰</span>
+        <h3 className="text-sm font-bold text-ink sm:text-base">تسجيل حضور متأخر</h3>
+      </div>
+      <p className="mt-2 text-xs text-out/80 sm:text-sm">
         لو نسيت تسجل عامل — سواء النهاردة أو في يوم فات — سجله من هنا بساعة الحضور الصح. لو فيه تسجيل للعامل ده في نفس اليوم، هيتستبدل بالبيانات الجديدة.
       </p>
 
-      <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-out">العامل</label>
-          <WorkerPicker workers={workers} value={workerId} onChange={setWorkerId} />
+      <form onSubmit={submit} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-medium text-out sm:text-xs">العامل *</label>
+          <WorkerPicker 
+            workers={workers} 
+            value={workerId} 
+            onChange={setWorkerId} 
+            className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
+          />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-out">التاريخ</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-medium text-out sm:text-xs">التاريخ *</label>
           <input
             type="date"
             value={date}
             max={todayKey()}
             onChange={(e) => setDate(e.target.value)}
-            className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+            className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">ساعة الحضور</label>
-            <input
-              type="time"
-              value={checkInTime}
-              onChange={(e) => setCheckInTime(e.target.value)}
-              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">ساعة الانصراف (اختياري)</label>
-            <input
-              type="time"
-              value={checkOutTime}
-              onChange={(e) => setCheckOutTime(e.target.value)}
-              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
-            />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-medium text-out sm:text-xs">ساعة الحضور *</label>
+          <input
+            type="time"
+            value={checkInTime}
+            onChange={(e) => setCheckInTime(e.target.value)}
+            className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
+          />
         </div>
 
-        <button
-          type="submit"
-          disabled={!workerId || !date || !checkInTime}
-          className="rounded-lg bg-ink py-2.5 text-sm font-bold text-white transition hover:bg-ink-soft disabled:opacity-40"
-        >
-          تسجيل الحضور
-        </button>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-medium text-out sm:text-xs">ساعة الانصراف (اختياري)</label>
+          <input
+            type="time"
+            value={checkOutTime}
+            onChange={(e) => setCheckOutTime(e.target.value)}
+            className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
+          />
+        </div>
 
-        {done && <p className="text-center text-xs font-semibold text-in">تم التسجيل ✓</p>}
+        <div className="sm:col-span-2">
+          <button
+            type="submit"
+            disabled={!workerId || !date || !checkInTime}
+            className="w-full rounded-xl bg-linear-to-r from-ink to-gray-800 py-3 text-sm font-bold text-white transition hover:shadow-lg hover:shadow-ink/20 disabled:opacity-40 disabled:hover:shadow-none sm:py-3.5 sm:text-base"
+          >
+            تسجيل الحضور
+          </button>
+        </div>
+
+        {done && (
+          <div className="sm:col-span-2">
+            <p className="rounded-xl bg-emerald-50 py-2.5 text-center text-xs font-semibold text-emerald-700 sm:text-sm">
+              ✅ تم التسجيل بنجاح
+            </p>
+          </div>
+        )}
       </form>
     </div>
   );
@@ -188,42 +206,45 @@ function BulkForm({ workers, onSubmit }) {
   }
 
   return (
-    <div className="rounded-xl border border-line bg-white p-5">
-      <h3 className="text-sm font-bold text-ink">تسجيل جماعي (يوم مفيش فيه نت)</h3>
-      <p className="mt-0.5 text-xs text-out">
+    <div className="rounded-2xl border border-line/60 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex items-center gap-2 border-b border-line/60 pb-3">
+        <span className="text-xl">👥</span>
+        <h3 className="text-sm font-bold text-ink sm:text-base">تسجيل جماعي (يوم مفيش فيه نت)</h3>
+      </div>
+      <p className="mt-2 text-xs text-out/80 sm:text-sm">
         اختار التاريخ وساعة الحضور العامة، وحدد كل اللي حضروا من القايمة تحت. لو حد جه بوقت مختلف عدّل ساعته لوحده. وفي الآخر دوس "تسجيل الكل".
       </p>
 
-      <form onSubmit={submitAll} className="mt-4 flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">التاريخ</label>
+      <form onSubmit={submitAll} className="mt-4 flex flex-col gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium text-out sm:text-xs">التاريخ *</label>
             <input
               type="date"
               value={date}
               max={todayKey()}
               onChange={(e) => setDate(e.target.value)}
-              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-out">ساعة الحضور العامة</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-medium text-out sm:text-xs">ساعة الحضور العامة *</label>
             <input
               type="time"
               value={commonTime}
               onChange={(e) => setCommonTime(e.target.value)}
-              className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+              className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-out">ساعة الانصراف العامة (اختياري)</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-medium text-out sm:text-xs">ساعة الانصراف العامة (اختياري)</label>
           <input
             type="time"
             value={commonCheckOutTime}
             onChange={(e) => setCommonCheckOutTime(e.target.value)}
-            className="tabular w-full rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel sm:w-1/2"
+            className="w-full rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:max-w-sm sm:py-3"
           />
         </div>
 
@@ -232,43 +253,45 @@ function BulkForm({ workers, onSubmit }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="دور على اسم..."
-            className="w-full flex-1 rounded-lg border border-line bg-page px-3 py-2 text-sm text-ink outline-none focus:border-steel"
+            className="w-full flex-1 rounded-xl border border-line/60 bg-page px-3 py-2.5 text-sm text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:py-3"
           />
           <div className="flex gap-2">
             <button
               type="button"
               onClick={selectAll}
-              className="flex-1 whitespace-nowrap rounded-lg border border-line px-3 py-2 text-xs font-semibold text-steel hover:bg-mist sm:flex-none"
+              className="flex-1 rounded-xl border border-line/60 px-3 py-2 text-xs font-semibold text-steel transition hover:bg-mist/50 sm:flex-none sm:px-4 sm:py-2.5 sm:text-sm"
             >
               اختار الكل
             </button>
             <button
               type="button"
               onClick={clearAll}
-              className="flex-1 whitespace-nowrap rounded-lg border border-line px-3 py-2 text-xs font-semibold text-out hover:bg-page sm:flex-none"
+              className="flex-1 rounded-xl border border-line/60 px-3 py-2 text-xs font-semibold text-out transition hover:bg-page sm:flex-none sm:px-4 sm:py-2.5 sm:text-sm"
             >
               امسح الاختيار
             </button>
           </div>
         </div>
 
-        <div className="max-h-80 overflow-y-auto rounded-lg border border-line">
+        <div className="max-h-80 overflow-y-auto rounded-xl border border-line/60">
           {filteredWorkers.length === 0 ? (
-            <p className="py-6 text-center text-xs text-out">مفيش عمال بالاسم ده</p>
+            <p className="py-8 text-center text-xs text-out sm:py-12 sm:text-sm">
+              مفيش عمال بالاسم ده
+            </p>
           ) : (
-            <ul className="divide-y divide-line">
+            <ul className="divide-y divide-line/60">
               {filteredWorkers.map((w) => {
                 const isChecked = !!selected[w.id];
                 return (
-                  <li key={w.id} className="flex flex-col gap-2 px-3 py-2.5">
-                    <label className="flex items-center gap-2.5">
+                  <li key={w.id} className="flex flex-col gap-2 px-3 py-2.5 transition hover:bg-mist/20 sm:px-4 sm:py-3">
+                    <label className="flex cursor-pointer items-center gap-2.5">
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggle(w.id)}
-                        className="h-5 w-5 accent-ink"
+                        className="h-5 w-5 rounded border-line/60 text-ink focus:ring-2 focus:ring-steel/20 sm:h-5 sm:w-5"
                       />
-                      <span className="text-sm font-medium text-ink">{w.name}</span>
+                      <span className="text-sm font-medium text-ink sm:text-base">{w.name}</span>
                     </label>
                     {isChecked && (
                       <div className="mr-7 grid grid-cols-2 gap-2">
@@ -276,13 +299,13 @@ function BulkForm({ workers, onSubmit }) {
                           type="time"
                           value={overrides[w.id]?.checkIn || commonTime}
                           onChange={(e) => setOverrideTime(w.id, "checkIn", e.target.value)}
-                          className="tabular w-full rounded-md border border-line bg-page px-2 py-1 text-xs text-ink outline-none focus:border-steel"
+                          className="w-full rounded-lg border border-line/60 bg-page px-2 py-1.5 text-xs text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:text-sm"
                         />
                         <input
                           type="time"
                           value={overrides[w.id]?.checkOut || commonCheckOutTime}
                           onChange={(e) => setOverrideTime(w.id, "checkOut", e.target.value)}
-                          className="tabular w-full rounded-md border border-line bg-page px-2 py-1 text-xs text-ink outline-none focus:border-steel"
+                          className="w-full rounded-lg border border-line/60 bg-page px-2 py-1.5 text-xs text-ink outline-none transition focus:border-steel/80 focus:ring-2 focus:ring-steel/20 sm:text-sm"
                         />
                       </div>
                     )}
@@ -296,13 +319,15 @@ function BulkForm({ workers, onSubmit }) {
         <button
           type="submit"
           disabled={!date || !commonTime || selectedCount === 0}
-          className="rounded-lg bg-ink py-2.5 text-sm font-bold text-white transition hover:bg-ink-soft disabled:opacity-40"
+          className="w-full rounded-xl bg-linear-to-r from-ink to-gray-800 py-3 text-sm font-bold text-white transition hover:shadow-lg hover:shadow-ink/20 disabled:opacity-40 disabled:hover:shadow-none sm:py-3.5 sm:text-base"
         >
           تسجيل الكل ({selectedCount})
         </button>
 
         {done > 0 && (
-          <p className="text-center text-xs font-semibold text-in">اتسجل {done} عامل ✓</p>
+          <p className="rounded-xl bg-emerald-50 py-2.5 text-center text-xs font-semibold text-emerald-700 sm:text-sm">
+            ✅ اتسجل {done} عامل بنجاح
+          </p>
         )}
       </form>
     </div>

@@ -14,6 +14,7 @@ function formatPaidAt(iso) {
   if (!iso) return "";
   const d = new Date(iso);
   const date = d.toLocaleDateString("ar-EG-u-nu-latn", {
+    timeZone: "Africa/Luanda",
     day: "numeric",
     month: "short",
   });
@@ -44,9 +45,6 @@ export default function PayslipModal({
   const workerId = summary.workerId;
   const workerName = summary.name;
 
-  // ------------------------------------------------------------
-  // تعديل المرتب الأساسي / ALMOCO
-  // ------------------------------------------------------------
   function editWage() {
     if (!onUpdateWorker) return;
 
@@ -87,13 +85,6 @@ export default function PayslipModal({
     onUpdateWorker(workerId, { almoco: num });
   }
 
-  // ------------------------------------------------------------
-  // الحضور / الغياب
-  //
-  // مفيش "رقم غياب" منفصل بنعدل فيه — الغياب أصلاً بيتحسب تلقائي
-  // من أيام الحضور المسجلة. فعشان نصحح الغياب فعليًا (ويأثر على
-  // المرتب صح) لازم نضيف يوم حضور جديد أو نشيل يوم كان متسجل غلط.
-  // ------------------------------------------------------------
   function addAttendancePrompt() {
     if (!onAddAttendance) return;
 
@@ -155,9 +146,6 @@ export default function PayslipModal({
     }
   }
 
-  // ------------------------------------------------------------
-  // خصومات الشهر ده
-  // ------------------------------------------------------------
   function addDeductionPrompt() {
     if (!onAddDeduction) return;
 
@@ -192,18 +180,13 @@ export default function PayslipModal({
 
     if (
       window.confirm(
-        `تشيل الخصم ده (${money(d.amount)}${
-          d.reason ? ` — ${d.reason}` : ""
-        })؟`
+        `تشيل الخصم ده (${money(d.amount)}${d.reason ? ` — ${d.reason}` : ""})؟`
       )
     ) {
       onRemoveDeduction(d.id);
     }
   }
 
-  // ------------------------------------------------------------
-  // مصروفات / سلف الشهر ده (بتتخصم فورًا من صافي الشهر ده)
-  // ------------------------------------------------------------
   function addExpensePrompt() {
     if (!onAddExpense) return;
 
@@ -240,18 +223,13 @@ export default function PayslipModal({
 
     if (
       window.confirm(
-        `تشيل السلفة/المصروف ده (${money(e.amount)}${
-          e.reason ? ` — ${e.reason}` : ""
-        })؟`
+        `تشيل السلفة/المصروف ده (${money(e.amount)}${e.reason ? ` — ${e.reason}` : ""})؟`
       )
     ) {
       onRemoveExpense(e.id);
     }
   }
 
-  // ------------------------------------------------------------
-  // الدين اللي بيتقسم على شهور (زي "الإدارة")
-  // ------------------------------------------------------------
   function addNewDebt() {
     if (!onUpdateWorker) return;
 
@@ -285,9 +263,7 @@ export default function PayslipModal({
     }
 
     const value = window.prompt(
-      `${workerName} عليه ${current.toLocaleString(
-        "en-US"
-      )} Kz.\nتحب تخصم قد ايه من مرتب الشهر ده؟`,
+      `${workerName} عليه ${current.toLocaleString("en-US")} Kz.\nتحب تخصم قد ايه من مرتب الشهر ده؟`,
       String(current)
     );
 
@@ -337,7 +313,7 @@ export default function PayslipModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 px-4 py-6 print:static print:block print:overflow-visible print:bg-white print:p-0"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/40 px-3 py-4 print:static print:block print:overflow-visible print:bg-white print:p-0 sm:px-4 sm:py-6"
       onClick={onClose}
     >
       <style>{`
@@ -367,97 +343,98 @@ export default function PayslipModal({
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="payslip-print w-full max-w-md rounded-2xl bg-white p-6 shadow-lg print:max-w-none print:rounded-none print:p-0"
+        className="payslip-print w-full max-w-md rounded-2xl bg-white p-5 shadow-lg print:max-w-none print:rounded-none print:p-0 sm:p-6"
       >
-        <div className="print-hide mb-4 flex items-center justify-end gap-2">
+        {/* Buttons */}
+        <div className="print-hide mb-4 flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={() => window.print()}
-            className="rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-xl bg-linear-to-r from-ink to-gray-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:shadow-lg hover:shadow-ink/20 sm:px-5"
           >
-            طباعة / PDF
+            🖨️ طباعة / PDF
           </button>
 
           <button
             onClick={onClose}
-            className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-out"
+            className="rounded-xl border border-line/60 px-4 py-2.5 text-sm font-semibold text-out transition hover:bg-page sm:px-5"
           >
-            إغلاق
+            ✕ إغلاق
           </button>
         </div>
 
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-line pb-4">
-          <img src={logo} alt="" className="h-12 w-12 object-contain" />
+        <div className="flex items-center gap-3 border-b border-line/60 pb-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-ink to-gray-800 p-1.5 shadow-md shadow-ink/10">
+            <img src={logo} alt="" className="h-full w-full object-contain" />
+          </div>
 
           <div>
-            <h2 className="text-base font-black text-ink">كشف مرتب</h2>
-
-            <p className="text-xs text-out">{monthLabel}</p>
+            <h2 className="text-base font-black text-ink sm:text-lg">📄 كشف مرتب</h2>
+            <p className="text-xs text-out/70 sm:text-sm">📅 {monthLabel}</p>
           </div>
         </div>
 
         {/* Payment status */}
-        <div className="mt-3 flex items-center justify-between rounded-lg border border-line px-3 py-2">
-          <span className="text-xs font-semibold text-out">
-            حالة الاستلام
-          </span>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line/60 bg-page/50 px-3 py-2.5 sm:px-4">
+          <span className="text-xs font-semibold text-out/70">حالة الاستلام</span>
 
           {onTogglePaid ? (
             <button
               onClick={onTogglePaid}
-              className="print-hide flex items-center gap-1.5"
+              className="print-hide flex items-center gap-1.5 transition hover:scale-105"
             >
               {isPaid ? (
-                <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100">
-                  ✓ اتصرف
+                <span className="flex flex-wrap items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-200">
+                  ✅ اتصرف
                   {paidAt && (
-                    <span className="font-normal text-emerald-600">
+                    <span className="font-normal text-emerald-600/80">
                       ({formatPaidAt(paidAt)})
                     </span>
                   )}
                 </span>
               ) : (
-                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100">
-                  ● لسه ما استلمش
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 hover:bg-amber-200">
+                  ⏳ لسه ما استلمش
                 </span>
               )}
             </button>
           ) : (
             <span
-              className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+              className={`rounded-full px-3 py-1 text-xs font-bold ${
                 isPaid
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-amber-50 text-amber-700"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-amber-100 text-amber-700"
               }`}
             >
-              {isPaid ? "✓ اتصرف" : "● لسه ما استلمش"}
+              {isPaid ? "✅ اتصرف" : "⏳ لسه ما استلمش"}
             </span>
           )}
 
           {onTogglePaid && (
             <span
-              className={`hidden rounded-full px-2.5 py-1 text-xs font-bold print:inline-block ${
+              className={`hidden rounded-full px-3 py-1 text-xs font-bold print:inline-block ${
                 isPaid
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-amber-50 text-amber-700"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-amber-100 text-amber-700"
               }`}
             >
-              {isPaid ? "✓ اتصرف" : "● لسه ما استلمش"}
+              {isPaid ? "✅ اتصرف" : "⏳ لسه ما استلمش"}
             </span>
           )}
         </div>
 
         {onTogglePaid && (
-          <p className="print-hide mt-1 text-[10px] text-out">
-            دوس على الحالة فوق عشان تغيّرها
+          <p className="print-hide mt-1 text-[10px] text-out/60">
+            👆 دوس على الحالة عشان تغيّرها
           </p>
         )}
 
         {/* Worker */}
         <div className="mt-4">
-          <p className="text-xs text-out">اسم العامل</p>
-
-          <p className="break-words text-lg font-bold text-ink">{summary.name}</p>
+          <p className="text-xs text-out/70">اسم العامل</p>
+          <p className="wrap-break-word text-lg font-bold text-ink sm:text-xl">
+            {summary.name}
+          </p>
         </div>
 
         {/* Salary */}
@@ -466,10 +443,9 @@ export default function PayslipModal({
             <button
               onClick={editWage}
               title="دوس عشان تعدّل المرتب الأساسي"
-              className="print-hide rounded-lg bg-page px-3 py-2 text-right hover:bg-mist"
+              className="print-hide rounded-xl bg-page/50 px-3 py-2.5 text-right transition hover:bg-mist/50 sm:px-4"
             >
-              <p className="text-xs text-out">المرتب الأساسي ✎</p>
-
+              <p className="text-xs text-out/70">المرتب الأساسي ✎</p>
               <p className="tabular font-semibold text-ink">
                 {money(summary.basicSalary)}
               </p>
@@ -477,46 +453,39 @@ export default function PayslipModal({
           )}
 
           <div
-            className={`rounded-lg bg-page px-3 py-2 ${
+            className={`rounded-xl bg-page/50 px-3 py-2.5 sm:px-4 ${
               onUpdateWorker ? "hidden print:block" : ""
             }`}
           >
-            <p className="text-xs text-out">المرتب الأساسي</p>
-
+            <p className="text-xs text-out/70">المرتب الأساسي</p>
             <p className="tabular font-semibold text-ink">
               {money(summary.basicSalary)}
             </p>
           </div>
 
-          <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">اليومية</p>
-
+          <div className="rounded-xl bg-page/50 px-3 py-2.5 sm:px-4">
+            <p className="text-xs text-out/70">اليومية</p>
             <p className="tabular font-semibold text-ink">
               {roundDaily(summary.dailyWage).toLocaleString("en-US")} Kz
             </p>
           </div>
 
-          <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">أيام كاملة</p>
-
+          <div className="rounded-xl bg-page/50 px-3 py-2.5 sm:px-4">
+            <p className="text-xs text-out/70">أيام كاملة</p>
             <p className="tabular font-semibold text-ink">
-              {summary.fullDays +
-                summary.offDaysWorked +
-                summary.paidHolidayDays}
+              {summary.fullDays + summary.offDaysWorked + summary.paidHolidayDays}
             </p>
           </div>
 
-          <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">الغياب</p>
-
-            <p className="tabular font-semibold text-ink">
+          <div className="rounded-xl bg-page/50 px-3 py-2.5 sm:px-4">
+            <p className="text-xs text-out/70">الغياب</p>
+            <p className={`tabular font-semibold ${summary.absentDays > 0 ? "text-rose-600" : "text-ink"}`}>
               {summary.absentDays}
             </p>
           </div>
 
-          <div className="rounded-lg bg-page px-3 py-2">
-            <p className="text-xs text-out">إجازات مدفوعة</p>
-
+          <div className="rounded-xl bg-page/50 px-3 py-2.5 sm:px-4">
+            <p className="text-xs text-out/70">إجازات مدفوعة</p>
             <p className="tabular font-semibold text-ink">
               {summary.paidHolidayDays}
             </p>
@@ -526,67 +495,63 @@ export default function PayslipModal({
             <button
               onClick={editAlmoco}
               title="دوس عشان تعدّل ALMOCO"
-              className="print-hide rounded-lg bg-page px-3 py-2 text-right hover:bg-mist"
+              className="print-hide rounded-xl bg-page/50 px-3 py-2.5 text-right transition hover:bg-mist/50 sm:px-4"
             >
-              <p className="text-xs text-out">ALMOCO ✎</p>
-
-              <p className="tabular font-semibold text-in">
+              <p className="text-xs text-out/70">ALMOCO ✎</p>
+              <p className="tabular font-semibold text-emerald-600">
                 {money(summary.almoco)}
               </p>
             </button>
           )}
 
           <div
-            className={`rounded-lg bg-page px-3 py-2 ${
+            className={`rounded-xl bg-page/50 px-3 py-2.5 sm:px-4 ${
               onUpdateWorker ? "hidden print:block" : ""
             }`}
           >
-            <p className="text-xs text-out">ALMOCO</p>
-
-            <p className="tabular font-semibold text-in">
+            <p className="text-xs text-out/70">ALMOCO</p>
+            <p className="tabular font-semibold text-emerald-600">
               {money(summary.almoco)}
             </p>
           </div>
         </div>
 
-        {/* Basic salary earned (شامل ALMOCO حسب الحضور) */}
-        <div className="mt-4 flex items-center justify-between rounded-lg bg-mist px-3 py-2 text-sm">
+        {/* Basic salary earned */}
+        <div className="mt-4 flex items-center justify-between rounded-xl bg-linear-to-r from-mist/50 to-mist/30 px-4 py-3 text-sm">
           <span className="font-semibold text-steel">
-            المستحق (أساسي {summary.almoco > 0 ? "+ أكل" : ""})
+            💰 المستحق {summary.almoco > 0 ? "(أساسي + أكل)" : ""}
           </span>
-
-          <span className="tabular font-bold text-steel">
+          <span className="tabular font-bold text-ink">
             {money(summary.gross)}
           </span>
         </div>
 
         {summary.almoco > 0 && (
-          <p className="mt-1 text-[11px] text-out">
-            اليومية شاملة بدل الأكل ({money(summary.almoco)} شهريًا) موزّع
-            على أيام الحضور
+          <p className="mt-1 text-[11px] text-out/60">
+            اليومية شاملة بدل الأكل ({money(summary.almoco)} شهريًا) موزّع على أيام الحضور
           </p>
         )}
 
-        {/* Attendance / تصحيح الغياب — أداة تعديل، مش هتظهر في الطباعة */}
+        {/* Attendance */}
         {(onAddAttendance || attendance.length > 0) && (
           <div className="print-hide mt-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-out">
-                أيام الحضور المسجلة ({attendance.length})
+              <h3 className="text-xs font-bold text-out/70">
+                📋 أيام الحضور ({attendance.length})
               </h3>
 
               {onAddAttendance && (
                 <button
                   onClick={addAttendancePrompt}
-                  className="print-hide text-[11px] font-semibold text-in hover:underline"
+                  className="text-[11px] font-semibold text-emerald-600 transition hover:text-emerald-700 hover:underline"
                 >
-                  + تسجيل يوم حضور
+                  + إضافة يوم
                 </button>
               )}
             </div>
 
             {attendance.length > 0 ? (
-              <ul className="mt-1 max-h-40 divide-y divide-line overflow-y-auto print:max-h-none print:overflow-visible">
+              <ul className="mt-1 max-h-40 divide-y divide-line/60 overflow-y-auto print:max-h-none print:overflow-visible">
                 {attendance.map((r) => (
                   <li
                     key={r.dateKey}
@@ -600,7 +565,7 @@ export default function PayslipModal({
                       <button
                         onClick={() => removeAttendanceConfirm(r)}
                         title="شيل يوم الحضور ده (يتحسب غياب)"
-                        className="print-hide text-xs text-out hover:text-red-600"
+                        className="print-hide rounded-lg px-2 py-0.5 text-xs text-out/60 transition hover:bg-rose-50 hover:text-rose-600"
                       >
                         ✕
                       </button>
@@ -609,14 +574,7 @@ export default function PayslipModal({
                 ))}
               </ul>
             ) : (
-              <p className="mt-1 text-xs text-out">مفيش أيام حضور مسجلة</p>
-            )}
-
-            {onAddAttendance && (
-              <p className="print-hide mt-1 text-[10px] text-out">
-                لو عامل نسي يسجل حضوره، سجله هنا عشان يتحسب في مرتبه بدل
-                ما يتحسب غياب
-              </p>
+              <p className="mt-1 text-xs text-out/60">مفيش أيام حضور مسجلة</p>
             )}
           </div>
         )}
@@ -624,12 +582,12 @@ export default function PayslipModal({
         {/* Deductions */}
         <div className="mt-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-out">الخصومات</h3>
+            <h3 className="text-xs font-bold text-out/70">📉 الخصومات</h3>
 
             {onAddDeduction && (
               <button
                 onClick={addDeductionPrompt}
-                className="print-hide text-[11px] font-semibold text-in hover:underline"
+                className="text-[11px] font-semibold text-rose-600 transition hover:text-rose-700 hover:underline"
               >
                 + إضافة خصم
               </button>
@@ -637,11 +595,11 @@ export default function PayslipModal({
           </div>
 
           {deductions.length > 0 ? (
-            <ul className="mt-1 divide-y divide-line">
+            <ul className="mt-1 divide-y divide-line/60">
               {deductions.map((d) => (
                 <li
                   key={d.id}
-                  className="flex items-center justify-between gap-2 py-1.5 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-sm"
                 >
                   <span className="text-ink-soft">
                     {formatDateLong(d.dateKey)}
@@ -649,7 +607,7 @@ export default function PayslipModal({
                   </span>
 
                   <span className="flex shrink-0 items-center gap-2">
-                    <span className="tabular font-semibold text-red-600">
+                    <span className="tabular font-semibold text-rose-600">
                       -{money(d.amount)}
                     </span>
 
@@ -657,7 +615,7 @@ export default function PayslipModal({
                       <button
                         onClick={() => removeDeductionConfirm(d)}
                         title="شيل الخصم ده"
-                        className="print-hide text-xs text-out hover:text-red-600"
+                        className="print-hide rounded-lg px-2 py-0.5 text-xs text-out/60 transition hover:bg-rose-50 hover:text-rose-600"
                       >
                         ✕
                       </button>
@@ -667,21 +625,19 @@ export default function PayslipModal({
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-xs text-out">مفيش خصومات الشهر ده</p>
+            <p className="mt-1 text-xs text-out/60">مفيش خصومات الشهر ده</p>
           )}
         </div>
 
         {/* Expenses */}
         <div className="mt-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-out">
-              المصروفات / السلف
-            </h3>
+            <h3 className="text-xs font-bold text-out/70">💳 المصروفات / السلف</h3>
 
             {onAddExpense && (
               <button
                 onClick={addExpensePrompt}
-                className="print-hide text-[11px] font-semibold text-in hover:underline"
+                className="text-[11px] font-semibold text-orange-600 transition hover:text-orange-700 hover:underline"
               >
                 + إضافة سلفة
               </button>
@@ -689,11 +645,11 @@ export default function PayslipModal({
           </div>
 
           {expenses.length > 0 ? (
-            <ul className="mt-1 divide-y divide-line">
+            <ul className="mt-1 divide-y divide-line/60">
               {expenses.map((e) => (
                 <li
                   key={e.id}
-                  className="flex items-center justify-between gap-2 py-1.5 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-sm"
                 >
                   <span className="text-ink-soft">
                     {formatDateLong(e.dateKey)}
@@ -709,7 +665,7 @@ export default function PayslipModal({
                       <button
                         onClick={() => removeExpenseConfirm(e)}
                         title="شيل السلفة/المصروف ده"
-                        className="print-hide text-xs text-out hover:text-red-600"
+                        className="print-hide rounded-lg px-2 py-0.5 text-xs text-out/60 transition hover:bg-orange-50 hover:text-orange-600"
                       >
                         ✕
                       </button>
@@ -719,54 +675,46 @@ export default function PayslipModal({
               ))}
             </ul>
           ) : (
-            <p className="mt-1 text-xs text-out">مفيش مصروفات الشهر ده</p>
+            <p className="mt-1 text-xs text-out/60">مفيش مصروفات الشهر ده</p>
           )}
         </div>
 
         {/* INSS */}
         {summary.hasInss && (
-          <div className="mt-4 flex items-center justify-between rounded-lg border border-line bg-page px-3 py-2 text-sm">
-            <span className="font-semibold text-ink">
-              الضمان الاجتماعي (INSS) — 3%
-            </span>
-
-            <span className="tabular font-bold text-purple-700">
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-line/60 bg-page/50 px-4 py-2.5 text-sm">
+            <span className="font-semibold text-ink">🏛️ الضمان الاجتماعي (INSS) — 3%</span>
+            <span className="tabular font-bold text-purple-600">
               -{money(summary.inss)}
             </span>
           </div>
         )}
 
         {/* Net */}
-        <div className="mt-5 flex items-center justify-between rounded-lg border border-line bg-page px-4 py-3">
-          <span className="text-sm font-bold text-ink">الصافي المستحق</span>
-
-          <span className="tabular text-xl font-black text-ink">
+        <div className="mt-5 flex items-center justify-between rounded-xl bg-linear-to-r from-ink to-gray-800 px-4 py-3.5 shadow-lg shadow-ink/20">
+          <span className="text-sm font-bold text-white">الصافي المستحق</span>
+          <span className="tabular text-xl font-black text-white sm:text-2xl">
             {money(summary.net)}
           </span>
         </div>
 
-        {/* Remaining debt / سلفة (بيتقسم على شهور) */}
+        {/* Debt */}
         {Number(summary.debtBalance || 0) > 0 ? (
-          <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
+          <div className="mt-3 rounded-xl border border-rose-200/60 bg-rose-50/50 px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-rose-700">
-                لسه باقي عليه من السلفة
+                💰 لسه باقي عليه من السلفة
               </span>
-
               <span className="tabular text-lg font-black text-rose-700">
                 {money(summary.debtBalance)}
               </span>
             </div>
 
-            <div className="mt-2 flex items-center justify-between border-t border-rose-200 pt-2">
-              <span className="text-xs font-bold text-ink">
-                الصافي بعد خصم السلفة
-              </span>
-
+            <div className="mt-2 flex items-center justify-between border-t border-rose-200/60 pt-2">
+              <span className="text-xs font-bold text-ink">الصافي بعد خصم السلفة</span>
               <span
                 className={`tabular text-base font-black ${
                   summary.net - summary.debtBalance < 0
-                    ? "text-red-600"
+                    ? "text-rose-600"
                     : "text-ink"
                 }`}
               >
@@ -775,24 +723,24 @@ export default function PayslipModal({
             </div>
 
             {onUpdateWorker && (
-              <div className="print-hide mt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold">
+              <div className="print-hide mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold">
                 <button
                   onClick={repayFromSalary}
-                  className="text-rose-700 hover:underline"
+                  className="rounded-lg bg-rose-100 px-3 py-1.5 text-rose-700 transition hover:bg-rose-200"
                 >
                   سداد من المرتب
                 </button>
 
                 <button
                   onClick={editDebtBalance}
-                  className="text-rose-500 hover:underline"
+                  className="text-rose-500 transition hover:text-rose-700 hover:underline"
                 >
                   تصحيح الرصيد
                 </button>
 
                 <button
                   onClick={addNewDebt}
-                  className="text-out hover:text-ink hover:underline"
+                  className="rounded-lg border border-line/60 px-3 py-1.5 text-out transition hover:border-ink/30 hover:bg-page hover:text-ink"
                 >
                   + سلفة جديدة
                 </button>
@@ -803,15 +751,15 @@ export default function PayslipModal({
           onUpdateWorker && (
             <button
               onClick={addNewDebt}
-              className="print-hide mt-2 text-[11px] font-medium text-out hover:text-ink hover:underline"
+              className="print-hide mt-2 text-xs font-medium text-out/60 transition hover:text-ink hover:underline"
             >
               + تسجيل سلفة كبيرة (هتتقسم على شهور)
             </button>
           )
         )}
 
-        <p className="mt-4 text-center text-[10px] text-out">
-          تم إصدار الكشف بتاريخ {formatDateLong(todayKey())}
+        <p className="mt-4 text-center text-[10px] text-out/40 sm:text-xs">
+          📄 تم إصدار الكشف بتاريخ {formatDateLong(todayKey())}
         </p>
       </div>
     </div>,

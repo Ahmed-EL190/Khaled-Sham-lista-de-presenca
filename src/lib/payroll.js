@@ -602,3 +602,240 @@ export function computeAbsenceDays(
     ),
   };
 }
+
+// --------------------------------------------------------------
+// توزيع تكلفة الرواتب على الورش
+//
+// الفكرة: لكل عامل، بنشوف اشتغل كام يوم في كل ورشة الشهر ده،
+// وبنحسب "متوسط تكلفة اليوم" بتاعه = مرتبه الكامل ÷ إجمالي أيام
+// حضوره الفعلية الشهر ده. بعدين بنوزّع مرتبه الكامل (شامل قيمة
+// الإجازات الرسمية المدفوعة) على نفس الورش دي حسب نسبة أيامه في
+// كل ورشة.
+//
+// لو عامل مالوش أي يوم حضور مسجل خالص الشهر ده (حالة نادرة) لكن
+// عنده إجازات مدفوعة، بتتحط في مجموعة "بدون ورشة / إجازة رسمية"
+// لأنه مفيش ورشة نقدر نوزعها عليها.
+// --------------------------------------------------------------
+export function buildSiteCostAllocation(
+  workers,
+  records,
+  schedule,
+  summaries,
+  monthKey,
+  basis = "full" // "full" | "fullAfterDebt"
+) {
+  const summaryByWorker = {};
+  for (const s of summaries) summaryByWorker[s.workerId] = s;
+
+  const workerSiteUnits = {}; // workerId -> { siteKey: { name, units } }
+  const workerAttendedUnits = {}; // workerId -> إجمالي أيام الحضور الفعلية (بدون الإجازات الرسمية)
+
+  for (const w of workers) {
+    workerSiteUnits[w.id] = {};
+    workerAttendedUnits[w.id] = 0;
+  }
+
+  for (const r of records) {
+    if (!r.checkIn) continue;
+    if (!r.dateKey?.startsWith(monthKey)) continue;
+
+    if (!workerSiteUnits[r.workerId]) {
+      workerSiteUnits[r.workerId] = {};
+      workerAttendedUnits[r.workerId] = 0;
+    }
+
+    const weight = dayType(r.dateKey, schedule) === "half" ? 0.5 : 1;
+    const siteKey = r.siteId || "none";
+    const siteName = r.siteName || "بدون ورشة";
+
+    if (!workerSiteUnits[r.workerId][siteKey]) {
+      workerSiteUnits[r.workerId][siteKey] = {
+        name: siteName,
+        units: 0,
+      };
+    }
+
+    workerSiteUnits[r.workerId][siteKey].units += weight;
+    workerAttendedUnits[r.workerId] += weight;
+  }
+
+  const bySite = {};
+
+  function siteBucket(siteId, siteName) {
+    const key = siteId || "none";
+    if (!bySite[key]) {
+      bySite[key] = {
+        siteId: key === "none" ? null : key,
+        name: siteName,
+        totalCost: 0,
+        totalUnits: 0,
+        workers: {},
+      };
+    }
+    return bySite[key];
+  }
+
+  for (const w of workers) {
+    const summary = summaryByWorker[w.id];
+    if (!summary) continue;
+
+    const siteUnitsMap = { ...workerSiteUnits[w.id] };
+    const holidayUnits = summary.paidHolidayDays || 0;
+    const attendedUnits = workerAttendedUnits[w.id] || 0;
+
+    // --------------------------------------------------------
+    // دمج أيام "بدون ورشة" (تسجيل حضور من غير تحديد ورشة) جوه
+    // الورشة اللي العامل حضر فيها أكتر عدد أيام الشهر ده.
+    //
+    // لو العامل عنده ورشة حقيقية واحدة على الأقل حضر فيها فعلاً:
+    // بنلاقي الورشة الأكتر (بالأيام)، ونضيفلها أيام "بدون ورشة"،
+    // وبنشيل "بدون ورشة" خالص من قايمته.
+    //
+    // لو معندوش أي ورشة حقيقية خالص (كل حضوره من غير ورشة):
+    // نسيبها زي ما هي، مفيش ورشة تانية نحطها فيها.
+    // --------------------------------------------------------
+    if (siteUnitsMap.none && siteUnitsMap.none.units > 0) {
+      const realSiteEntries = Object.entries(siteUnitsMap).filter(
+        ([key]) => key !== "none",
+      );
+
+      if (realSiteEntries.length > 0) {
+        let [dominantKey, dominantInfo] = realSiteEntries[0];
+
+        for (const [key, info] of realSiteEntries) {
+          if (info.units > dominantInfo.units) {
+            dominantKey = key;
+            dominantInfo = info;
+          }
+        }
+
+        siteUnitsMap[dominantKey] = {
+          ...dominantInfo,
+          units: dominantInfo.units + siteUnitsMap.none.units,
+        };
+        delete siteUnitsMap.none;
+      }
+    }
+
+    // --------------------------------------------------------
+    // توزيع الإجازات الرسمية المدفوعة:
+    //
+    // لو العامل اشتغل في ورشة أو أكتر الشهر ده: قيمة إجازاته
+    // الرسمية بتتوزع على نفس الورش دي بنفس نسبة أيامه في كل
+    // واحدة منها (مش بتروح لمجموعة "بدون ورشة" منفصلة).
+    //
+    // لو العامل مالوش أي يوم حضور مسجل في أي ورشة الشهر ده
+    // (حالة نادرة) لكن عنده إجازات مدفوعة: مفيش ورشة نوزعها
+    // عليها، فبتفضل في مجموعة "بدون ورشة / إجازة رسمية".
+    // --------------------------------------------------------
+    let totalUnits = attendedUnits;
+
+    if (attendedUnits <= 0 && holidayUnits > 0) {
+      const key = "none";
+      siteUnitsMap[key] = {
+        name: "بدون ورشة / إجازة رسمية",
+        units: holidayUnits,
+      };
+      totalUnits = holidayUnits;
+    }
+
+    if (totalUnits <= 0) continue;
+
+    // --------------------------------------------------------
+    // مرتب العامل الكامل اللي بيتوزّع على الورش:
+    //
+    // = الأساسي + بدل الأكل (المرتب التعاقدي الكامل زي ما هو،
+    //   مش حسب أيام الحضور الفعلية)
+    //   - الضمان الاجتماعي (لو العامل عليه ضمان)
+    //
+    // من غير ما نحسب أي غيابات، ومن غير ما نخصم منه أي سلف أو
+    // مصاريف أو خصومات تانية، لأن دي حاجات شخصية خاصة بالعامل
+    // نفسه، ومش لها علاقة بتكلفة الورشة الفعلية.
+    //
+    // ملحوظة: قبل كده كان بيتحسب من summary.totalBeforeDeductions
+    // اللي هو "جروس" متأثر بعدد أيام حضوره الفعلية (لو غاب أيام
+    // كان بينزّل المبلغ الموزّع). دلوقتي بنستخدم المرتب الكامل
+    // زي ما هو في بيانات العامل، بغض النظر عن الغياب خالص.
+    // --------------------------------------------------------
+    const fullSalary = summary.basicSalary + summary.almoco - summary.inss;
+
+    const amountToSplit =
+      basis === "fullAfterDebt"
+        ? fullSalary - (summary.debtBalance || 0)
+        : fullSalary;
+
+    const perUnitCost = amountToSplit / totalUnits;
+
+    for (const [siteKey, info] of Object.entries(siteUnitsMap)) {
+      if (!info.units) continue;
+
+      const cost = perUnitCost * info.units;
+      const bucket = siteBucket(siteKey, info.name);
+
+      bucket.totalCost += cost;
+      bucket.totalUnits += info.units;
+
+      if (!bucket.workers[w.id]) {
+        bucket.workers[w.id] = {
+          workerId: w.id,
+          name: summary.name,
+          units: 0,
+          cost: 0,
+        };
+      }
+
+      bucket.workers[w.id].units += info.units;
+      bucket.workers[w.id].cost += cost;
+    }
+  }
+
+  const rawSites = Object.values(bySite).map((bucket) => ({
+    ...bucket,
+    workers: Object.values(bucket.workers).sort((a, b) => b.cost - a.cost),
+  }));
+
+  // ------------------------------------------------------------
+  // ورشة "OFFICE": مش هي نفسها بتتحسب كورشة ليها تكلفة مستقلة —
+  // موظفيها بيتوزّع مرتبهم الكامل بالتساوي على باقي الورش الحقيقية
+  // (من غير "بدون ورشة / إجازة رسمية").
+  // ------------------------------------------------------------
+  const isOffice = (name) => (name || "").trim().toLowerCase() === "office";
+
+  const officeSite = rawSites.find((s) => isOffice(s.name));
+  const otherSites = rawSites.filter(
+    (s) => !isOffice(s.name) && s.siteId !== null,
+  );
+  const noSiteBucket = rawSites.find((s) => s.siteId === null && !isOffice(s.name));
+
+  let finalSites = rawSites;
+
+  if (officeSite && otherSites.length > 0) {
+    const share = officeSite.totalCost / otherSites.length;
+
+    for (const site of otherSites) {
+      site.totalCost += share;
+      site.workers = [
+        ...site.workers,
+        {
+          workerId: `office-share-${site.siteId}`,
+          name: "حصة موظفي OFFICE (بالتساوي)",
+          units: null,
+          cost: share,
+        },
+      ];
+    }
+
+    finalSites = [...otherSites, ...(noSiteBucket ? [noSiteBucket] : [])];
+  }
+
+  return finalSites.sort((a, b) => b.totalCost - a.totalCost);
+}
+// في نهاية الملف
+export default {
+  buildPayrollSummaries,
+  computeAbsenceDays,
+  buildSiteCostAllocation,
+  dayType,
+  countScheduledOffDaysInMonth,
+  dailyWageFromMonthly,
+};
