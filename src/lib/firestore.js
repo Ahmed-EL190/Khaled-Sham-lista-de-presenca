@@ -286,6 +286,68 @@ export function removeBudgetPlan({ monthKey, type, category }) {
   return deleteDoc(doc(db, "budgetPlans", budgetPlanId(monthKey, type, category)));
 }
 
+// ---------- Foreign Workers (عمال أجانب - كشف حساب بالدولار: مرتب/سلفة/أكل) ----------
+export function subscribeForeignWorkers(cb) {
+  return onSnapshot(collection(db, "foreignWorkers"), (snap) =>
+    cb(sortByName(docsFromSnap(snap)))
+  );
+}
+
+export function addForeignWorker({ name, note }) {
+  return addDoc(collection(db, "foreignWorkers"), {
+    name,
+    note: note || "",
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export function updateForeignWorker(id, patch) {
+  return setDoc(doc(db, "foreignWorkers", id), patch, { merge: true });
+}
+
+export function removeForeignWorker(id) {
+  return deleteDoc(doc(db, "foreignWorkers", id));
+}
+
+// مسح نهائي: العامل + كل حركاته المالية مع بعض (مش بس اسمه)
+export async function purgeForeignWorker(workerId) {
+  const entriesQ = query(collection(db, "foreignWorkerEntries"), where("workerId", "==", workerId));
+  const entriesSnap = await getDocs(entriesQ);
+  const batch = writeBatch(db);
+  entriesSnap.docs.forEach((d) => batch.delete(d.ref));
+  batch.delete(doc(db, "foreignWorkers", workerId));
+  await batch.commit();
+}
+
+export function subscribeForeignWorkerEntries(cb) {
+  return onSnapshot(collection(db, "foreignWorkerEntries"), (snap) =>
+    cb(docsFromSnap(snap))
+  );
+}
+
+// type: "wage" (مرتب مستحق - دائن/له) | "salary" (استلم مرتب - مدين/عليه)
+//     | "advance" (سلفة - مدين/عليه) | "food" (أكل - مدين/عليه)
+// كشف حساب مستمر زي حساب أي عميل: كل الشهور مرتبطة ببعض، مفيش تصفير شهري.
+export function addForeignWorkerEntry({ workerId, workerName, type, amount, note, dateKey }) {
+  return addDoc(collection(db, "foreignWorkerEntries"), {
+    workerId,
+    workerName,
+    type,
+    amount: Number(amount) || 0,
+    note: note || "",
+    dateKey: dateKey || todayKey(),
+    createdAt: new Date().toISOString(),
+  });
+}
+
+export function updateForeignWorkerEntry(id, patch) {
+  return setDoc(doc(db, "foreignWorkerEntries", id), patch, { merge: true });
+}
+
+export function removeForeignWorkerEntry(id) {
+  return deleteDoc(doc(db, "foreignWorkerEntries", id));
+}
+
 // ---------- Purge (delete worker + ALL their history everywhere) ----------
 export async function purgeWorker(workerId) {
   const recordsQ = query(collection(db, "records"), where("workerId", "==", workerId));

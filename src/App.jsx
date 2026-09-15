@@ -54,8 +54,17 @@ import {
   subscribeBudgetPlans,
   saveBudgetPlan,
   removeBudgetPlan,
+  subscribeForeignWorkers,
+  addForeignWorker,
+  removeForeignWorker,
+  purgeForeignWorker,
+  subscribeForeignWorkerEntries,
+  addForeignWorkerEntry,
+  updateForeignWorkerEntry,
+  removeForeignWorkerEntry,
 } from "./lib/firestore";
 import BudgetView from "./components/BudgetView";
+import ForeignWorkersView from "./components/ForeignWorkersView";
 
 const FOREMAN_TABS = [
   { id: "today", label: "اليوم" },
@@ -73,6 +82,7 @@ const OWNER_TABS = [
   { id: "reports", label: "التقارير" },
   { id: "payroll", label: "الرواتب" },
   { id: "budget", label: "الميزانية" },
+  { id: "foreign", label: "العمال الأجانب" },
   { id: "logs", label: "الخصومات والمصروفات" },
   { id: "manage", label: "الإدارة" },
 ];
@@ -90,6 +100,8 @@ export default function App() {
   const [payments, setPayments] = useState([]);
   const [budgetEntries, setBudgetEntries] = useState([]);
   const [budgetPlans, setBudgetPlans] = useState([]);
+  const [foreignWorkers, setForeignWorkers] = useState([]);
+  const [foreignWorkerEntries, setForeignWorkerEntries] = useState([]);
   const [tab, setTab] = useState("today");
   const [search, setSearch] = useState("");
   const [pendingWorkerId, setPendingWorkerId] = useState(null);
@@ -125,11 +137,13 @@ export default function App() {
     const unsubDeductions = subscribeDeductions(scopeSiteId, setDeductions);
     const unsubExpenses = subscribeExpenses(scopeSiteId, setExpenses);
     const unsubPayments = subscribePayments(setPayments);
-    const unsubBudgetEntries = isOwner
-      ? subscribeBudgetEntries(setBudgetEntries)
+    const unsubBudgetEntries = isOwner ? subscribeBudgetEntries(setBudgetEntries) : () => {};
+    const unsubBudgetPlans = isOwner ? subscribeBudgetPlans(setBudgetPlans) : () => {};
+    const unsubForeignWorkers = isOwner
+      ? subscribeForeignWorkers(setForeignWorkers)
       : () => {};
-    const unsubBudgetPlans = isOwner
-      ? subscribeBudgetPlans(setBudgetPlans)
+    const unsubForeignWorkerEntries = isOwner
+      ? subscribeForeignWorkerEntries(setForeignWorkerEntries)
       : () => {};
     return () => {
       unsubWorkers();
@@ -140,6 +154,8 @@ export default function App() {
       unsubPayments();
       unsubBudgetEntries();
       unsubBudgetPlans();
+      unsubForeignWorkers();
+      unsubForeignWorkerEntries();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed, session, scopeSiteId, today, isOwner]);
@@ -271,7 +287,8 @@ export default function App() {
       history: "📋",
       reports: "📊",
       payroll: "💰",
-      budget: "💼",
+      budget: "📈",
+      foreign: "🌍",
       logs: "📝",
       manage: "⚙️",
       late: "⏰",
@@ -339,9 +356,7 @@ export default function App() {
             >
               <span className="flex items-center gap-2">
                 <span>{getTabIcon(tab)}</span>
-                <span>
-                  {tabs.find((t) => t.id === tab)?.label || "القائمة"}
-                </span>
+                <span>{tabs.find((t) => t.id === tab)?.label || "القائمة"}</span>
               </span>
               <svg
                 className={`h-5 w-5 transition-transform duration-200 ${
@@ -352,11 +367,7 @@ export default function App() {
                 stroke="currentColor"
                 strokeWidth="2"
               >
-                <path
-                  d="M6 9l6 6 6-6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
             {isTabsOpen && (
@@ -641,6 +652,18 @@ export default function App() {
             onRemoveEntry={removeBudgetEntry}
             onSavePlan={saveBudgetPlan}
             onRemovePlan={removeBudgetPlan}
+          />
+        )}
+
+        {tab === "foreign" && isOwner && (
+          <ForeignWorkersView
+            workers={foreignWorkers}
+            entries={foreignWorkerEntries}
+            onAddWorker={addForeignWorker}
+            onRemoveWorker={purgeForeignWorker}
+            onAddEntry={addForeignWorkerEntry}
+            onUpdateEntry={updateForeignWorkerEntry}
+            onRemoveEntry={removeForeignWorkerEntry}
           />
         )}
 
